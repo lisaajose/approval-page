@@ -1,20 +1,20 @@
+using System.Security.Claims;
 using ApprovalWorkflow.Models;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace ApprovalWorkflow.Services
 {
     public interface IUserContextService
     {
         Task<User?> GetCurrentUserAsync();
-        void SetCurrentUser(int userId);
-        void ClearCurrentUser();
+        Task SignInAsync(User user);
+        Task SignOutAsync();
         bool IsAuthenticated();
     }
 
     public class UserContextService : IUserContextService
     {
-        public const string UserCookieName = "ActiveWorkflowUserId";
-        private const int FallbackDefaultUserId = 1; // JP
-
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IApprovalService _approvalService;
 
@@ -26,30 +26,22 @@ namespace ApprovalWorkflow.Services
 
         public bool IsAuthenticated()
         {
-            var context = _httpContextAccessor.HttpContext;
-            if (context != null && context.Request.Cookies.TryGetValue(UserCookieName, out var cookieVal))
-            {
-                return int.TryParse(cookieVal, out _);
-            }
-            return false;
+            var user = _httpContextAccessor.HttpContext?.User;
+            return user?.Identity?.IsAuthenticated == true;
         }
 
         public async Task<User?> GetCurrentUserAsync()
         {
             var context = _httpContextAccessor.HttpContext;
-            int? userId = null;
-
-            if (context != null && context.Request.Cookies.TryGetValue(UserCookieName, out var cookieVal))
+            if (context?.User?.Identity?.IsAuthenticated != true)
             {
-                if (int.TryParse(cookieVal, out int parsedId))
-                {
-                    userId = parsedId;
-                }
+                return null;
             }
 
-            if (userId.HasValue)
+            var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out int userId))
             {
-                var user = await _approvalService.GetUserByIdAsync(userId.Value);
+                var user = await _approvalService.GetUserByIdAsync(userId);
                 if (user != null && user.Bactive == true)
                 {
                     return user;
@@ -59,30 +51,38 @@ namespace ApprovalWorkflow.Services
             return null;
         }
 
-        public void SetCurrentUser(int userId)
+        public async Task SignInAsync(User user)
         {
             var context = _httpContextAccessor.HttpContext;
-            if (context != null)
+            if (context == null) return;
+
+            var claims = new List<Claim>
             {
-                context.Response.Cookies.Append(UserCookieName, userId.ToString(), new CookieOptions
-                {
-                    Expires = DateTimeOffset.Now.AddDays(7),
-                    HttpOnly = true,
-                    SameSite = SameSiteMode.Lax,
-                    Path = "/"
-                });
-            }
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.UserRole == 1 ? "Admin" : "Approver")
+            };
+
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
+            };
+
+            await context.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties);
         }
 
-        public void ClearCurrentUser()
+        public async Task SignOutAsync()
         {
             var context = _httpContextAccessor.HttpContext;
             if (context != null)
             {
-                context.Response.Cookies.Delete(UserCookieName, new CookieOptions
-                {
-                    Path = "/"
-                });
+                await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             }
         }
     }

@@ -107,7 +107,7 @@ namespace ApprovalWorkflow.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving voucher details for HeaderId {Id}", id);
-                TempData["ErrorMessage"] = "Error retrieving voucher details: " + ex.Message;
+                TempData["ErrorMessage"] = "An error occurred while retrieving the voucher details. Please try again later.";
                 return RedirectToAction(nameof(Index));
             }
         }

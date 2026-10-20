@@ -1,6 +1,7 @@
 using ApprovalWorkflow.Models;
 using ApprovalWorkflow.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace ApprovalWorkflow.Controllers
 {
@@ -43,6 +44,7 @@ namespace ApprovalWorkflow.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting("LoginLimiter")]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
             if (string.IsNullOrWhiteSpace(model.UsernameOrEmail) || string.IsNullOrWhiteSpace(model.Password))
@@ -58,7 +60,7 @@ namespace ApprovalWorkflow.Controllers
                 return View(model);
             }
 
-            _userContextService.SetCurrentUser(result.User.UserId);
+            await _userContextService.SignInAsync(result.User);
             TempData["SuccessMessage"] = $"Welcome back, {result.User.Username}!";
 
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
@@ -71,9 +73,9 @@ namespace ApprovalWorkflow.Controllers
 
         [HttpGet]
         [HttpPost]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
-            _userContextService.ClearCurrentUser();
+            await _userContextService.SignOutAsync();
             TempData["SuccessMessage"] = "You have been logged out successfully.";
             return RedirectToAction(nameof(Login));
         }
