@@ -26,6 +26,10 @@ namespace ApprovalWorkflow.Controllers
         public async Task<IActionResult> Index()
         {
             var currentUser = await _userContextService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path });
+            }
             ViewBag.CurrentUser = currentUser;
 
             var vouchers = await _voucherService.GetRecentVouchersAsync(100);
@@ -36,6 +40,10 @@ namespace ApprovalWorkflow.Controllers
         public async Task<IActionResult> Create()
         {
             var currentUser = await _userContextService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path });
+            }
             ViewBag.CurrentUser = currentUser;
 
             var model = new CreateVoucherViewModel
@@ -52,6 +60,10 @@ namespace ApprovalWorkflow.Controllers
         public async Task<IActionResult> Create(CreateVoucherViewModel model)
         {
             var currentUser = await _userContextService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path });
+            }
             ViewBag.CurrentUser = currentUser;
 
             if (!ModelState.IsValid)
@@ -75,6 +87,10 @@ namespace ApprovalWorkflow.Controllers
         public async Task<IActionResult> Details(int id)
         {
             var currentUser = await _userContextService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path });
+            }
             ViewBag.CurrentUser = currentUser;
 
             try

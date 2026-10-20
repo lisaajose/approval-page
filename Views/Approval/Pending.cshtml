@@ -5,98 +5,98 @@
     var activeUser = (ApprovalWorkflow.Models.User)ViewBag.CurrentUser;
 }
 
-<div class="row align-items-center mb-4">
-    <div class="col-md-8">
-        <h2 class="fw-bold mb-1">
-            <i class="bi bi-inbox text-primary me-2"></i>My Pending Approvals
-        </h2>
-        <p class="text-muted mb-0">
-            Vouchers where <strong>@activeUser.Username</strong> (UserId: @activeUser.UserId) is the authorized approver for the <em>current</em> sequential stage.
-        </p>
-    </div>
-    <div class="col-md-4 text-md-end mt-3 mt-md-0">
-        <span class="badge bg-primary fs-6 px-3 py-2">
-            @Model.Count Pending Items
-        </span>
-    </div>
+<!-- Page Heading & Breadcrumb -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-bold py-1 mb-1">
+      <span class="text-muted fw-light">Workflow /</span> My Pending Approvals
+    </h4>
+    <p class="text-muted mb-0 small">
+      Showing vouchers where <strong>@activeUser.Username</strong> (UserId: @activeUser.UserId) is the authorized actor for the current sequential stage.
+    </p>
+  </div>
+  <div>
+    <span class="badge bg-label-primary fs-6 px-3 py-2">
+      <i class="bx bx-time-five me-1"></i> @Model.Count Pending Tasks
+    </span>
+  </div>
 </div>
 
-<div class="card border-0 shadow-sm bg-white">
-    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-        <h5 class="fw-bold mb-0 text-secondary">
-            <i class="bi bi-list-check me-2"></i>Actionable Approval Queue
-        </h5>
-        <span class="text-muted small">Fetched via <code>dbo.usp_GetPendingApprovals</code></span>
-    </div>
-    
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light text-secondary small text-uppercase">
-                <tr>
-                    <th scope="col" class="ps-4">Voucher No</th>
-                    <th scope="col">Date</th>
-                    <th scope="col">Narration</th>
-                    <th scope="col" class="text-end">Amount (₹)</th>
-                    <th scope="col" class="text-center">Workflow Level</th>
-                    <th scope="col" class="text-center">Current Stage</th>
-                    <th scope="col">Alert Message</th>
-                    <th scope="col" class="text-end pe-4">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (!Model.Any())
-                {
-                    <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">
-                            <i class="bi bi-check-circle fs-1 text-success opacity-75 d-block mb-2"></i>
-                            <strong>All caught up!</strong> No pending approval assignments for @activeUser.Username at this time.
-                            <div class="small mt-1 text-secondary">
-                                Switch user actor in the top navbar if you want to test another approver's queue.
-                            </div>
-                        </td>
-                    </tr>
-                }
-                else
-                {
-                    @foreach (var item in Model)
-                    {
-                        <tr>
-                            <td class="ps-4 fw-bold text-primary">
-                                <a asp-controller="Voucher" asp-action="Details" asp-route-id="@item.HeaderId" class="text-decoration-none">
-                                    @item.VoucherNo
-                                </a>
-                            </td>
-                            <td>@item.Date.ToString("yyyy-MM-dd")</td>
-                            <td>
-                                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="@item.Narration">
-                                    @(string.IsNullOrWhiteSpace(item.Narration) ? "—" : item.Narration)
-                                </span>
-                            </td>
-                            <td class="text-end fw-bold">
-                                ₹@item.Amount.ToString("N2")
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-info bg-opacity-10 text-dark border border-info border-opacity-25 px-2 py-1">
-                                    Level @item.WorkflowLevel
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-primary">
-                                    Stage @item.StepOrder (Lvl @item.Level)
-                                </span>
-                            </td>
-                            <td>
-                                <span class="small text-secondary">@(item.Alerts ?? "Approval Required")</span>
-                            </td>
-                            <td class="text-end pe-4">
-                                <a asp-controller="Voucher" asp-action="Details" asp-route-id="@item.HeaderId" class="btn btn-sm btn-primary shadow-sm">
-                                    <i class="bi bi-pencil-square me-1"></i> Review & Decide
-                                </a>
-                            </td>
-                        </tr>
-                    }
-                }
-            </tbody>
-        </table>
-    </div>
+<!-- Pending Approvals Card -->
+<div class="card shadow-sm border-0">
+  <div class="card-header border-bottom py-3 d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0 fw-bold text-dark">
+      <i class="bx bx-task text-primary me-2"></i>Actionable Approval Tasks
+    </h5>
+    <small class="text-muted">Enforced by SQL Server procedure <code>dbo.usp_GetPendingApprovals</code></small>
+  </div>
+
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Voucher No</th>
+          <th>Date</th>
+          <th>Narration</th>
+          <th class="text-end">Amount (₹)</th>
+          <th class="text-center">Workflow Level</th>
+          <th class="text-center">Actionable Stage</th>
+          <th>Alert Message</th>
+          <th class="text-center">Action</th>
+        </tr>
+      </thead>
+      <tbody class="table-border-bottom-0">
+        @if (!Model.Any())
+        {
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bx bx-check-double fs-1 text-success d-block mb-2"></i>
+              <strong>All caught up!</strong> No pending approval tasks assigned to <strong>@activeUser.Username</strong>.
+              <div class="small mt-1 text-secondary">
+                To test approvals for another user (Lisa, Gautham, Edwin, JP), switch user in the top navigation bar.
+              </div>
+            </td>
+          </tr>
+        }
+        else
+        {
+          @foreach (var item in Model)
+          {
+            <tr>
+              <td>
+                <a asp-controller="Voucher" asp-action="Details" asp-route-id="@item.HeaderId" class="fw-bold text-primary">
+                  <i class="bx bx-file me-1"></i>@item.VoucherNo
+                </a>
+              </td>
+              <td>@item.Date.ToString("yyyy-MM-dd")</td>
+              <td>
+                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="@item.Narration">
+                  @(string.IsNullOrWhiteSpace(item.Narration) ? "—" : item.Narration)
+                </span>
+              </td>
+              <td class="text-end fw-bold text-dark">
+                ₹@item.Amount.ToString("N2")
+              </td>
+              <td class="text-center">
+                <span class="badge bg-label-info">Level @item.WorkflowLevel</span>
+              </td>
+              <td class="text-center">
+                <span class="badge bg-primary">
+                  Stage @item.StepOrder (Lvl @item.Level)
+                </span>
+              </td>
+              <td>
+                <span class="small text-secondary">@(item.Alerts ?? "Approval Alert")</span>
+              </td>
+              <td class="text-center">
+                <a asp-controller="Voucher" asp-action="Details" asp-route-id="@item.HeaderId" class="btn btn-primary btn-sm px-3 shadow-sm">
+                  <i class="bx bx-check-circle me-1"></i> Review &amp; Act
+                </a>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
 </div>

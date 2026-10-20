@@ -10,5 +10,6 @@ namespace ApprovalWorkflow.Services
         Task<List<NotificationItem>> GetNotificationsAsync(int userId);
         Task<List<User>> GetAllUsersAsync();
         Task<User?> GetUserByIdAsync(int userId);
+        Task<(bool Success, User? User, string Message)> ValidateUserLoginAsync(string usernameOrEmail, string password);
     }
 }

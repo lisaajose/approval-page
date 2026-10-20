@@ -4,14 +4,16 @@ namespace ApprovalWorkflow.Services
 {
     public interface IUserContextService
     {
-        Task<User> GetCurrentUserAsync();
+        Task<User?> GetCurrentUserAsync();
         void SetCurrentUser(int userId);
+        void ClearCurrentUser();
+        bool IsAuthenticated();
     }
 
     public class UserContextService : IUserContextService
     {
-        private const string UserCookieName = "ActiveWorkflowUserId";
-        private const int DefaultUserId = 1; // Default to JP
+        public const string UserCookieName = "ActiveWorkflowUserId";
+        private const int FallbackDefaultUserId = 1; // JP
 
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IApprovalService _approvalService;
@@ -22,10 +24,20 @@ namespace ApprovalWorkflow.Services
             _approvalService = approvalService;
         }
 
-        public async Task<User> GetCurrentUserAsync()
+        public bool IsAuthenticated()
         {
             var context = _httpContextAccessor.HttpContext;
-            int userId = DefaultUserId;
+            if (context != null && context.Request.Cookies.TryGetValue(UserCookieName, out var cookieVal))
+            {
+                return int.TryParse(cookieVal, out _);
+            }
+            return false;
+        }
+
+        public async Task<User?> GetCurrentUserAsync()
+        {
+            var context = _httpContextAccessor.HttpContext;
+            int? userId = null;
 
             if (context != null && context.Request.Cookies.TryGetValue(UserCookieName, out var cookieVal))
             {
@@ -35,15 +47,16 @@ namespace ApprovalWorkflow.Services
                 }
             }
 
-            var user = await _approvalService.GetUserByIdAsync(userId);
-            if (user != null)
+            if (userId.HasValue)
             {
-                return user;
+                var user = await _approvalService.GetUserByIdAsync(userId.Value);
+                if (user != null && user.Bactive == true)
+                {
+                    return user;
+                }
             }
 
-            // Fallback
-            var allUsers = await _approvalService.GetAllUsersAsync();
-            return allUsers.FirstOrDefault() ?? new User { UserId = 1, Username = "JP" };
+            return null;
         }
 
         public void SetCurrentUser(int userId)
@@ -55,7 +68,20 @@ namespace ApprovalWorkflow.Services
                 {
                     Expires = DateTimeOffset.Now.AddDays(7),
                     HttpOnly = true,
-                    SameSite = SameSiteMode.Lax
+                    SameSite = SameSiteMode.Lax,
+                    Path = "/"
+                });
+            }
+        }
+
+        public void ClearCurrentUser()
+        {
+            var context = _httpContextAccessor.HttpContext;
+            if (context != null)
+            {
+                context.Response.Cookies.Delete(UserCookieName, new CookieOptions
+                {
+                    Path = "/"
                 });
             }
         }

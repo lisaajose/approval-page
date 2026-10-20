@@ -1,334 +1,634 @@
 @model ApprovalWorkflow.Models.VoucherDetailsViewModel
 
 @{
-    ViewData["Title"] = $"Voucher Details - {Model.Header.VoucherNo}";
+    ViewData["Title"] = $"Approval - Voucher {Model.Header.VoucherNo}";
     var activeUser = (ApprovalWorkflow.Models.User)ViewBag.CurrentUser;
+    string authBadgeClass = Model.Header.AuthStatus switch
+    {
+        0 => "bg-label-warning",
+        1 => "bg-label-success",
+        2 => "bg-label-danger",
+        _ => "bg-label-secondary"
+    };
+    string authBadgeIcon = Model.Header.AuthStatus switch
+    {
+        0 => "bx-time-five",
+        1 => "bx-check-circle",
+        2 => "bx-x-circle",
+        _ => "bx-help-circle"
+    };
 }
 
+<!-- Page Heading & Breadcrumb -->
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <div class="d-flex align-items-center">
-        <a asp-action="Index" class="btn btn-outline-secondary me-3 btn-sm">
-            <i class="bi bi-arrow-left"></i> All Vouchers
-        </a>
-        <div>
-            <div class="d-flex align-items-center gap-2">
-                <h3 class="fw-bold mb-0">@Model.Header.VoucherNo</h3>
-                @if (Model.Header.AuthStatus == 0)
-                {
-                    <span class="badge bg-warning text-dark fs-6 px-3 py-1"><i class="bi bi-clock me-1"></i>Pending Approval</span>
-                }
-                else if (Model.Header.AuthStatus == 1)
-                {
-                    <span class="badge bg-success fs-6 px-3 py-1"><i class="bi bi-check-circle me-1"></i>Fully Approved & Posted</span>
-                }
-                else
-                {
-                    <span class="badge bg-danger fs-6 px-3 py-1"><i class="bi bi-x-circle me-1"></i>Rejected</span>
-                }
-            </div>
-            <span class="text-muted small">
-                Created on @Model.Header.CreatedDate.ToString("yyyy-MM-dd HH:mm") by @(Model.Header.CreatedByUsername ?? "User")
-            </span>
-        </div>
-    </div>
-
-    <div class="text-end">
-        <span class="text-muted small d-block">Voucher Amount</span>
-        <span class="fw-bold fs-3 text-primary">₹@Model.Header.Amount.ToString("N2")</span>
-        <span class="badge bg-light text-dark border ms-2">Level @Model.Header.WorkflowLevel</span>
-    </div>
+  <div>
+    <h4 class="fw-bold py-1 mb-1">
+      <span class="text-muted fw-light">Vouchers /</span> Approval Workflow
+    </h4>
+    <p class="text-muted mb-0 small">
+      Review and manage sequential authorization for voucher <strong>@Model.Header.VoucherNo</strong>
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+      <i class="bx bx-arrow-back me-1"></i> All Vouchers
+    </a>
+    <a asp-action="Create" class="btn btn-outline-primary btn-sm">
+      <i class="bx bx-plus me-1"></i> New Voucher
+    </a>
+  </div>
 </div>
 
-<!-- Overview Cards -->
-<div class="card mb-4 bg-white border-0 shadow-sm">
-    <div class="card-body p-4">
-        <div class="row g-3">
-            <div class="col-md-3">
-                <span class="text-muted small d-block">Voucher Date</span>
-                <strong class="fs-6">@Model.Header.Date.ToString("yyyy-MM-dd")</strong>
-            </div>
-            <div class="col-md-3">
-                <span class="text-muted small d-block">Posting Date</span>
-                <strong class="fs-6">@(Model.Header.PostDate.HasValue ? Model.Header.PostDate.Value.ToString("yyyy-MM-dd") : "Not Posted (Pending)")</strong>
-            </div>
-            <div class="col-md-6">
-                <span class="text-muted small d-block">Narration / Description</span>
-                <span class="fs-6 text-secondary">@(string.IsNullOrWhiteSpace(Model.Header.Narration) ? "—" : Model.Header.Narration)</span>
-            </div>
-        </div>
+<!-- TOP VOUCHER DETAILS CARD -->
+<div class="card mb-4 shadow-sm border-0">
+  <div class="card-header d-flex justify-content-between align-items-center border-bottom py-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="avatar avatar-md bg-label-primary rounded p-2">
+        <i class="bx bx-file fs-3"></i>
+      </div>
+      <div>
+        <h5 class="card-title mb-0 text-dark fw-bold">@Model.Header.VoucherNo</h5>
+        <small class="text-muted">
+          Created on @Model.Header.CreatedDate.ToString("yyyy-MM-dd HH:mm") by @(Model.Header.CreatedByUsername ?? "System")
+        </small>
+      </div>
     </div>
+    <div class="text-end">
+      <span class="badge @authBadgeClass fs-6 px-3 py-2 fw-semibold">
+        <i class="bx @authBadgeIcon me-1"></i> @Model.Header.AuthStatusDescription
+      </span>
+      <span class="badge bg-label-info ms-2 fs-6 px-3 py-2">
+        Level @Model.Header.WorkflowLevel
+      </span>
+    </div>
+  </div>
+
+  <div class="card-body pt-4">
+    <!-- Fields Grid -->
+    <div class="row g-4 mb-3">
+      <div class="col-sm-6 col-md-3">
+        <span class="text-muted small d-block mb-1">Voucher Number (Svoucherno)</span>
+        <span class="fw-semibold text-dark fs-6">@Model.Header.VoucherNo</span>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <span class="text-muted small d-block mb-1">Voucher Date (dDate)</span>
+        <span class="fw-semibold text-dark fs-6">@Model.Header.Date.ToString("yyyy-MM-dd")</span>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <span class="text-muted small d-block mb-1">Amount</span>
+        <span class="fw-bold text-primary fs-5">₹@Model.Header.Amount.ToString("N2")</span>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <span class="text-muted small d-block mb-1">Posting Date (dPostDate)</span>
+        <span class="fw-semibold fs-6 @(Model.Header.PostDate.HasValue ? "text-success" : "text-muted")">
+          @(Model.Header.PostDate.HasValue ? Model.Header.PostDate.Value.ToString("yyyy-MM-dd") : "Not Posted (Pending)")
+        </span>
+      </div>
+      <div class="col-12">
+        <span class="text-muted small d-block mb-1">Narration (sNarration)</span>
+        <p class="mb-0 bg-lighter p-2 rounded text-secondary border">
+          @(string.IsNullOrWhiteSpace(Model.Header.Narration) ? "No narration provided." : Model.Header.Narration)
+        </p>
+      </div>
+    </div>
+
+    <!-- ACTION BUTTONS BAR: Save, Approve, Reject, Auth Info -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
+      <div class="d-flex align-items-center gap-2">
+        <span class="text-muted small fw-semibold me-2">Actions:</span>
+
+        <!-- Save Button -->
+        <a asp-action="Create" class="btn btn-outline-primary btn-sm">
+          <i class="bx bx-save me-1"></i> Save New
+        </a>
+
+        <!-- Approve Button -->
+        @if (Model.CanCurrentUserAct)
+        {
+          <button type="button" class="btn btn-success btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalApprove">
+            <i class="bx bx-check-circle me-1"></i> Approve
+          </button>
+        }
+        else
+        {
+          <button type="button" class="btn btn-success btn-sm" disabled title="@(Model.Header.AuthStatus != 0 ? "Voucher is not pending." : $"Awaiting action from {Model.Header.CurrentPendingUsername}.")">
+            <i class="bx bx-check-circle me-1"></i> Approve
+          </button>
+        }
+
+        <!-- Reject Button -->
+        @if (Model.CanCurrentUserAct)
+        {
+          <button type="button" class="btn btn-danger btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalReject">
+            <i class="bx bx-x-circle me-1"></i> Reject
+          </button>
+        }
+        else
+        {
+          <button type="button" class="btn btn-danger btn-sm" disabled title="@(Model.Header.AuthStatus != 0 ? "Voucher is not pending." : $"Awaiting action from {Model.Header.CurrentPendingUsername}.")">
+            <i class="bx bx-x-circle me-1"></i> Reject
+          </button>
+        }
+
+        <!-- Auth Info Button -->
+        <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#modalAuthInfo">
+          <i class="bx bx-info-circle me-1"></i> Auth Info
+        </button>
+      </div>
+
+      <div>
+        @if (Model.Header.AuthStatus == 0)
+        {
+          <span class="badge bg-label-primary px-3 py-2">
+            <i class="bx bx-loader-circle bx-spin me-1"></i>
+            Current Stage: <strong>@(Model.Header.CurrentPendingUsername ?? "Pending Stage")</strong>
+          </span>
+        }
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="row g-4">
-    <!-- LEFT COLUMN: The 4 Vertically Arranged Cells / Slots Panel -->
-    <div class="col-lg-7">
-        <div class="card border-0 shadow-sm bg-white p-4">
-            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                <div>
-                    <h5 class="fw-bold text-dark mb-0">
-                        <i class="bi bi-view-stacked text-primary me-2"></i>Approval Details (4-Slot Panel)
-                    </h5>
-                    <span class="text-muted small">Arranged vertically per Guide Line specification</span>
-                </div>
-                <span class="badge bg-light text-dark border">
-                    Workflow Level @Model.Header.WorkflowLevel
-                </span>
-            </div>
-
-            <!-- Vertical Slots Container -->
-            <div class="d-flex flex-column gap-3">
-                @for (int slotIndex = 1; slotIndex <= 4; slotIndex++)
-                {
-                    var slot = Model.ApprovalSlots.FirstOrDefault(s => s.StepOrder == slotIndex);
-                    string defaultSlotUser = slotIndex switch {
-                        1 => "Lisa (UserId: 13)",
-                        2 => "Gautham (UserId: 1012)",
-                        3 => "Edwin (UserId: 5)",
-                        4 => "JP (UserId: 1)",
-                        _ => "N/A"
-                    };
-
-                    <div class="card border @(slot?.IsCurrentActiveStage == true ? "border-primary shadow-sm" : slot?.Status == 1 ? "border-success bg-light bg-opacity-25" : slot?.Status == 2 ? "border-danger bg-light bg-opacity-25" : "border-light-subtle bg-light bg-opacity-50")">
-                        <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="badge @(slot?.Status == 1 ? "bg-success" : slot?.Status == 2 ? "bg-danger" : slot?.IsCurrentActiveStage == true ? "bg-primary" : "bg-secondary") rounded-pill">
-                                        Slot @slotIndex
-                                    </span>
-                                    <strong class="fs-6 text-dark">
-                                        Level @slotIndex Approval
-                                    </strong>
-                                </div>
-
-                                <div>
-                                    @if (slot == null)
-                                    {
-                                        <span class="badge bg-light text-muted border">Not Applicable for Level @Model.Header.WorkflowLevel</span>
-                                    }
-                                    else if (slot.Status == 1)
-                                    {
-                                        <span class="badge bg-success"><i class="bi bi-check2-circle me-1"></i>Approved</span>
-                                    }
-                                    else if (slot.Status == 2)
-                                    {
-                                        <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Rejected / Terminated</span>
-                                    }
-                                    else if (slot.IsCurrentActiveStage)
-                                    {
-                                        <span class="badge bg-primary"><i class="bi bi-hourglass-top me-1"></i>Current Pending Stage</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary"><i class="bi bi-lock me-1"></i>Waiting for Prerequisite Stage</span>
-                                    }
-                                </div>
-                            </div>
-
-                            @if (slot != null)
-                            {
-                                <div class="row g-2 small mb-2">
-                                    <div class="col-sm-6">
-                                        <span class="text-muted">Assigned User:</span>
-                                        <strong class="text-dark d-block">
-                                            <i class="bi bi-person-fill text-secondary me-1"></i>@slot.AssignedUsername (ID: @slot.AssignedUserId)
-                                        </strong>
-                                    </div>
-                                    <div class="col-sm-6">
-                                        <span class="text-muted">Alert Type:</span>
-                                        <strong class="text-dark d-block">
-                                            <span class="badge bg-info bg-opacity-10 text-dark border border-info border-opacity-25">@slot.AlertTypeDescription</span>
-                                        </strong>
-                                    </div>
-                                    <div class="col-12">
-                                        <span class="text-muted">Alerts Message:</span>
-                                        <span class="text-dark fw-medium d-block bg-white p-2 rounded border mt-1">
-                                            <i class="bi bi-bell text-warning me-1"></i>@(slot.Alerts ?? "Approval Alert")
-                                        </span>
-                                    </div>
-                                    <div class="col-12">
-                                        <span class="text-muted">User Comments:</span>
-                                        <span class="text-secondary d-block fst-italic">
-                                            @(string.IsNullOrWhiteSpace(slot.UserComments) ? "No comments recorded." : slot.UserComments)
-                                        </span>
-                                    </div>
-                                    @if (slot.ActionDate.HasValue)
-                                    {
-                                        <div class="col-12 text-muted text-end small">
-                                            <i class="bi bi-calendar-check me-1"></i>Actioned by @slot.ActionedByUsername on @slot.ActionDate.Value.ToString("yyyy-MM-dd HH:mm:ss")
-                                        </div>
-                                    }
-                                </div>
-
-                                <!-- Action Form if this slot is active -->
-                                @if (slot.IsCurrentActiveStage && Model.Header.AuthStatus == 0)
-                                {
-                                    <div class="mt-3 pt-3 border-top bg-white p-3 rounded border">
-                                        @if (activeUser.UserId == slot.AssignedUserId)
-                                        {
-                                            <div class="alert alert-primary py-2 px-3 small d-flex align-items-center mb-3">
-                                                <i class="bi bi-shield-check fs-5 me-2 text-primary"></i>
-                                                <div>
-                                                    <strong>Authorized:</strong> You are logged in as <strong>@activeUser.Username</strong> (Assigned Approver for this stage).
-                                                </div>
-                                            </div>
-
-                                            <form method="post" id="actionForm">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="HeaderId" value="@Model.Header.HeaderId" />
-                                                
-                                                <div class="mb-3">
-                                                    <label class="form-label fw-semibold small text-secondary">Comments on Decision:</label>
-                                                    <input type="text" name="Comments" id="txtDecisionComments" class="form-control form-control-sm" placeholder="Enter reason or remarks (mandatory for rejection)" maxlength="100" />
-                                                </div>
-
-                                                <div class="d-flex gap-2">
-                                                    <button type="submit" asp-controller="Approval" asp-action="Approve" class="btn btn-success btn-sm px-3 shadow-sm fw-semibold">
-                                                        <i class="bi bi-check-lg me-1"></i> Approve Stage @slot.StepOrder
-                                                    </button>
-                                                    <button type="submit" asp-controller="Approval" asp-action="Reject" class="btn btn-danger btn-sm px-3 shadow-sm fw-semibold" onclick="return confirmRejection();">
-                                                        <i class="bi bi-x-lg me-1"></i> Reject Voucher
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        }
-                                        else
-                                        {
-                                            <div class="alert alert-light border py-2 px-3 small text-muted mb-0 d-flex align-items-center justify-content-between">
-                                                <div>
-                                                    <i class="bi bi-lock-fill text-warning me-1"></i>
-                                                    Stage awaiting action from <strong>@slot.AssignedUsername</strong>. Current active user is <strong>@activeUser.Username</strong>.
-                                                </div>
-                                                <form asp-controller="Approval" asp-action="SwitchUser" method="post" class="m-0">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="userId" value="@slot.AssignedUserId" />
-                                                    <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-                                                    <button type="submit" class="btn btn-outline-primary btn-sm py-0 px-2" title="Switch to @slot.AssignedUsername for testing">
-                                                        Switch to @slot.AssignedUsername
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            }
-                            else
-                            {
-                                <div class="text-muted small">
-                                    Voucher amount ₹@Model.Header.Amount.ToString("N2") does not require Level @slotIndex approval.
-                                    Standard assigned approver at this level: @defaultSlotUser.
-                                </div>
-                            }
-                        </div>
-                    </div>
-                }
-            </div>
+  <!-- LEFT COLUMN: The Four-Cell Approval Details Panel -->
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center border-bottom py-3">
+        <div>
+          <h5 class="card-title mb-0 fw-bold text-dark">
+            <i class="bx bx-list-check text-primary me-2"></i>Approval Details (Four-Cell Panel)
+          </h5>
+          <small class="text-muted">Arranged vertically for JP, LISA, GAUTHAM, and EDWIN</small>
         </div>
-    </div>
+        <span class="badge bg-label-secondary">
+          Workflow Level @Model.Header.WorkflowLevel
+        </span>
+      </div>
 
-    <!-- RIGHT COLUMN: Notifications (JP) & Complete Audit Trail -->
-    <div class="col-lg-5">
-        <div class="d-flex flex-column gap-4">
+      <div class="card-body p-4">
+        <!-- 4 Vertical Cells -->
+        <div class="d-flex flex-column gap-3">
+          @for (int cellIndex = 1; cellIndex <= 4; cellIndex++)
+          {
+            var slot = Model.ApprovalSlots.FirstOrDefault(s => s.StepOrder == cellIndex);
             
-            <!-- JP Notifications Card -->
-            <div class="card border-0 shadow-sm bg-white p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                    <h5 class="fw-bold text-dark mb-0">
-                        <i class="bi bi-bell-fill text-warning me-2"></i>Notifications (JP)
-                    </h5>
-                    <span class="badge bg-warning bg-opacity-10 text-dark border border-warning border-opacity-25 small">
-                        Alert Type 0
+            // Designated users per matrix:
+            // 1: Lisa (UserId 13)
+            // 2: Gautham (UserId 1012)
+            // 3: Edwin (UserId 5)
+            // 4: JP (UserId 1)
+            string cellUserName = cellIndex switch {
+                1 => "LISA",
+                2 => "GAUTHAM",
+                3 => "EDWIN",
+                4 => "JP",
+                _ => "Unknown"
+            };
+            int cellUserId = cellIndex switch {
+                1 => 13,
+                2 => 1012,
+                3 => 5,
+                4 => 1,
+                _ => 0
+            };
+            string cellRoleDesc = cellIndex switch {
+                1 => "Level 1 Approver (₹50.01 - ₹100.00)",
+                2 => "Level 2 Approver (₹100.01 - ₹500.00)",
+                3 => "Level 3 Approver (₹500.01 - ₹1,000.00)",
+                4 => "Level 4 Approver (> ₹1,000.00)",
+                _ => ""
+            };
+
+            bool isRequired = slot != null;
+            bool isActiveStage = slot?.IsCurrentActiveStage == true;
+            bool isApproved = slot?.Status == 1;
+            bool isRejected = slot?.Status == 2;
+            bool isWaiting = isRequired && !isApproved && !isRejected && !isActiveStage;
+
+            string cellCardClass = isActiveStage ? "card-stage-active bg-white" :
+                                   isApproved ? "card-stage-done bg-lighter" :
+                                   isRejected ? "card-stage-rejected bg-lighter" :
+                                   isWaiting ? "card-stage-waiting bg-lighter" : "border bg-lighter opacity-75";
+
+            <div class="card @cellCardClass shadow-none">
+              <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="badge @(isActiveStage ? "bg-primary" : isApproved ? "bg-success" : isRejected ? "bg-danger" : "bg-secondary") rounded-pill">
+                      Cell @cellIndex
                     </span>
+                    <strong class="fs-6 text-dark">
+                      @cellUserName
+                    </strong>
+                    <span class="text-muted small">(UserId: @cellUserId)</span>
+                  </div>
+
+                  <!-- Task Status Badge -->
+                  <div>
+                    @if (!isRequired)
+                    {
+                      <span class="badge bg-label-notrequired">
+                        <i class="bx bx-minus-circle me-1"></i> Not Required
+                      </span>
+                    }
+                    else if (isApproved)
+                    {
+                      <span class="badge bg-label-success">
+                        <i class="bx bx-check-circle me-1"></i> Approved
+                      </span>
+                    }
+                    else if (isRejected)
+                    {
+                      <span class="badge bg-label-danger">
+                        <i class="bx bx-x-circle me-1"></i> Rejected
+                      </span>
+                    }
+                    else if (isActiveStage)
+                    {
+                      <span class="badge bg-label-warning">
+                        <i class="bx bx-hourglass bx-spin me-1"></i> Current Pending Stage
+                      </span>
+                    }
+                    else
+                    {
+                      <span class="badge bg-label-secondary">
+                        <i class="bx bx-lock-alt me-1"></i> Waiting
+                      </span>
+                    }
+                  </div>
                 </div>
 
-                <p class="text-muted small mb-3">
-                    Per the Guide Line sheet, JP (UserId 1) receives notification alerts for vouchers across all amount levels.
-                    <strong>Notification records do not confer approval permissions.</strong>
-                </p>
-
-                @if (!Model.Notifications.Any())
-                {
-                    <div class="alert alert-light text-muted small border mb-0">
-                        No separate notification records generated for this voucher.
+                <!-- Cell Data Grid -->
+                <div class="row g-2 small mb-2">
+                  <div class="col-sm-4">
+                    <span class="text-muted d-block">Alert Type:</span>
+                    <span class="badge bg-label-info">
+                      @(isRequired ? slot!.AlertTypeDescription : "Approval Alert")
+                    </span>
+                  </div>
+                  <div class="col-sm-4">
+                    <span class="text-muted d-block">Approval Level:</span>
+                    <span class="fw-semibold text-dark">Level @cellIndex</span>
+                  </div>
+                  <div class="col-sm-4">
+                    <span class="text-muted d-block">Role Mapping:</span>
+                    <span class="text-secondary">@cellRoleDesc</span>
+                  </div>
+                  <div class="col-12 mt-2">
+                    <span class="text-muted d-block">Alert Message (sAlerts):</span>
+                    <div class="bg-white p-2 rounded border mt-1 text-dark fw-medium">
+                      <i class="bx bx-bell text-warning me-1"></i>
+                      @(isRequired ? (slot!.Alerts ?? "Approval Alert") : $"Not required for voucher amount ₹{Model.Header.Amount:N2}")
                     </div>
-                }
-                else
-                {
-                    <div class="list-group list-group-flush border rounded">
-                        @foreach (var notif in Model.Notifications)
-                        {
-                            <div class="list-group-item p-3">
-                                <div class="d-flex justify-content-between align-items-start mb-1">
-                                    <strong class="text-dark small"><i class="bi bi-person-circle me-1 text-primary"></i>JP (UserId 1)</strong>
-                                    <span class="badge bg-light text-secondary border">Notification Alert</span>
-                                </div>
-                                <div class="text-dark small fw-medium mb-1">
-                                    @notif.Alerts
-                                </div>
-                                @if (!string.IsNullOrWhiteSpace(notif.UserComments))
-                                {
-                                    <div class="text-muted small fst-italic">
-                                        @notif.UserComments
-                                    </div>
-                                }
-                            </div>
-                        }
+                  </div>
+                  <div class="col-12 mt-1">
+                    <span class="text-muted d-block">User Comments (sUsercomments):</span>
+                    <span class="fst-italic text-secondary">
+                      @(isRequired && !string.IsNullOrWhiteSpace(slot!.UserComments) ? slot.UserComments : "No comments recorded.")
+                    </span>
+                  </div>
+                  @if (isRequired && slot!.ActionDate.HasValue)
+                  {
+                    <div class="col-12 text-end text-muted small mt-1">
+                      <i class="bx bx-calendar-check me-1"></i> Actioned by <strong>@slot.ActionedByUsername</strong> on @slot.ActionDate.Value.ToString("yyyy-MM-dd HH:mm:ss")
                     </div>
-                }
-            </div>
-
-            <!-- Immutable Audit Trail History Card -->
-            <div class="card border-0 shadow-sm bg-white p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                    <h5 class="fw-bold text-dark mb-0">
-                        <i class="bi bi-clock-history text-secondary me-2"></i>Workflow Audit History
-                    </h5>
-                    <span class="badge bg-light text-dark border">t_ApprovalHistory</span>
+                  }
                 </div>
 
-                @if (!Model.History.Any())
+                <!-- In-place action if this cell is current active stage -->
+                @if (isActiveStage && Model.Header.AuthStatus == 0)
                 {
-                    <div class="text-muted small text-center py-3">No audit history entries recorded.</div>
+                  <div class="mt-3 pt-3 border-top bg-white p-3 rounded border">
+                    @if (activeUser.UserId == slot!.AssignedUserId)
+                    {
+                      <div class="alert alert-primary py-2 px-3 small d-flex align-items-center mb-3">
+                        <i class="bx bx-shield-check fs-4 me-2"></i>
+                        <div>
+                          <strong>Authorized Approver:</strong> You are currently logged in as <strong>@activeUser.Username</strong>.
+                        </div>
+                      </div>
+
+                      <form method="post" id="cellActionForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="HeaderId" value="@Model.Header.HeaderId" />
+
+                        <div class="mb-3">
+                          <label class="form-label small fw-semibold">Remarks / Decision Comments:</label>
+                          <input type="text" name="Comments" id="cellCommentsInput" class="form-control form-control-sm" placeholder="Enter decision remarks (required for rejection)" maxlength="100" />
+                        </div>
+
+                        <div class="d-flex gap-2">
+                          <button type="submit" asp-controller="Approval" asp-action="Approve" class="btn btn-success btn-sm px-3 shadow-sm">
+                            <i class="bx bx-check-circle me-1"></i> Approve Stage @slot.StepOrder
+                          </button>
+                          <button type="button" class="btn btn-danger btn-sm px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalReject">
+                            <i class="bx bx-x-circle me-1"></i> Reject Voucher
+                          </button>
+                        </div>
+                      </form>
+                    }
+                    else
+                    {
+                      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="small text-muted">
+                          <i class="bx bx-lock-alt text-warning me-1"></i>
+                          Awaiting action from <strong>@slot!.AssignedUsername</strong>. Active actor is <strong>@activeUser.Username</strong>.
+                        </div>
+                        <form asp-controller="Approval" asp-action="SwitchUser" method="post" class="m-0">
+                          @Html.AntiForgeryToken()
+                          <input type="hidden" name="userId" value="@slot.AssignedUserId" />
+                          <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                          <button type="submit" class="btn btn-outline-primary btn-sm py-1 px-2" title="Switch to @slot.AssignedUsername for testing">
+                            <i class="bx bx-refresh me-1"></i> Switch to @slot.AssignedUsername
+                          </button>
+                        </form>
+                      </div>
+                    }
+                  </div>
                 }
-                else
-                {
-                    <div class="timeline position-relative ps-3 border-start border-2 border-primary border-opacity-25">
-                        @foreach (var eventItem in Model.History)
-                        {
-                            <div class="mb-3 position-relative">
-                                <div class="d-flex justify-content-between align-items-baseline">
-                                    <div>
-                                        <span class="badge @(eventItem.Action == "APPROVED" ? "bg-success" : eventItem.Action == "REJECTED" ? "bg-danger" : eventItem.Action == "AUTO_APPROVED" ? "bg-info text-white" : "bg-primary") me-1">
-                                            @eventItem.Action
-                                        </span>
-                                        <strong class="small text-dark">@eventItem.ActionUsername</strong>
-                                    </div>
-                                    <span class="text-muted small">@eventItem.ActionDate.ToString("HH:mm:ss")</span>
-                                </div>
-                                @if (!string.IsNullOrWhiteSpace(eventItem.Comments))
-                                {
-                                    <div class="text-secondary small mt-1 bg-light p-2 rounded">
-                                        @eventItem.Comments
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
-                }
+              </div>
             </div>
+          }
         </div>
+      </div>
     </div>
+  </div>
+
+  <!-- RIGHT COLUMN: Notifications & Workflow Summary -->
+  <div class="col-lg-4">
+    <div class="d-flex flex-column gap-4">
+      <!-- JP Notifications Card -->
+      <div class="card shadow-sm border-0">
+        <div class="card-header border-bottom py-3 d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0 fw-bold text-dark">
+            <i class="bx bx-bell text-warning me-2"></i>Notifications
+          </h5>
+          <span class="badge bg-label-warning">Alert Type 0</span>
+        </div>
+        <div class="card-body p-3">
+          <p class="text-muted small mb-3">
+            Per the supervisor specification, JP (UserId 1) receives notification alerts across all amount levels.
+            <strong>Notification records do not confer approval permissions.</strong>
+          </p>
+
+          @if (!Model.Notifications.Any())
+          {
+            <div class="alert alert-secondary py-2 small mb-0">
+              No notification records found for this voucher.
+            </div>
+          }
+          else
+          {
+            <div class="list-group list-group-flush">
+              @foreach (var notif in Model.Notifications)
+              {
+                <div class="list-group-item px-0 py-2 border-bottom">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <strong class="text-dark small">@notif.RecipientUsername</strong>
+                    <span class="badge bg-label-success small">Notified</span>
+                  </div>
+                  <div class="small text-secondary mb-1">
+                    @notif.Alerts
+                  </div>
+                  @if (!string.IsNullOrWhiteSpace(notif.UserComments))
+                  {
+                    <div class="small text-muted fst-italic">
+                      "@notif.UserComments"
+                    </div>
+                  }
+                  @if (notif.ActionDate.HasValue)
+                  {
+                    <div class="text-muted small text-end" style="font-size: 0.72rem;">
+                      @notif.ActionDate.Value.ToString("yyyy-MM-dd HH:mm:ss")
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Quick Matrix Legend Card -->
+      <div class="card shadow-sm border-0">
+        <div class="card-header border-bottom py-3">
+          <h6 class="card-title mb-0 fw-bold text-dark">
+            <i class="bx bx-table text-primary me-2"></i>Approval Matrix Reference
+          </h6>
+        </div>
+        <div class="card-body p-3 small">
+          <table class="table table-sm table-borderless mb-0">
+            <tbody>
+              <tr class="@(Model.Header.WorkflowLevel == 0 ? "table-primary fw-bold" : "")">
+                <td>Level 0</td>
+                <td>₹0 – ₹50</td>
+                <td>No approval req.</td>
+              </tr>
+              <tr class="@(Model.Header.WorkflowLevel == 1 ? "table-primary fw-bold" : "")">
+                <td>Level 1</td>
+                <td>₹50.01 – ₹100</td>
+                <td>Lisa</td>
+              </tr>
+              <tr class="@(Model.Header.WorkflowLevel == 2 ? "table-primary fw-bold" : "")">
+                <td>Level 2</td>
+                <td>₹100.01 – ₹500</td>
+                <td>Lisa → Gautham</td>
+              </tr>
+              <tr class="@(Model.Header.WorkflowLevel == 3 ? "table-primary fw-bold" : "")">
+                <td>Level 3</td>
+                <td>₹500.01 – ₹1,000</td>
+                <td>Lisa → Gautham → Edwin</td>
+              </tr>
+              <tr class="@(Model.Header.WorkflowLevel == 4 ? "table-primary fw-bold" : "")">
+                <td>Level 4</td>
+                <td>> ₹1,000</td>
+                <td>Lisa → Gautham → Edwin → JP</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="text-muted small mt-2 pt-2 border-top">
+            JP receives notification alerts across all 5 levels.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-@section Scripts {
-    <script>
-        function confirmRejection() {
-            const comments = document.getElementById('txtDecisionComments').value.trim();
-            if (!comments) {
-                alert('Please enter a rejection reason in the comments box.');
-                document.getElementById('txtDecisionComments').focus();
-                return false;
-            }
-            return confirm('Are you sure you want to REJECT this voucher? Once rejected, the voucher cannot subsequently be approved.');
+<!-- MODAL: APPROVE CONFIRMATION -->
+<div class="modal fade" id="modalApprove" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <form asp-controller="Approval" asp-action="Approve" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="HeaderId" value="@Model.Header.HeaderId" />
+
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-success">
+            <i class="bx bx-check-circle me-1"></i> Approve Voucher
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <p>
+            Are you sure you want to approve voucher <strong>@Model.Header.VoucherNo</strong> for amount <strong>₹@Model.Header.Amount.ToString("N2")</strong>?
+          </p>
+          <div class="mb-3">
+            <label class="form-label">Approval Comments (Optional):</label>
+            <input type="text" name="Comments" class="form-control" placeholder="Enter approval remarks" maxlength="100" />
+          </div>
+        </div>
+
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success">
+            <i class="bx bx-check me-1"></i> Confirm Approval
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: REJECT CONFIRMATION -->
+<div class="modal fade" id="modalReject" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <form asp-controller="Approval" asp-action="Reject" method="post" id="rejectModalForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="HeaderId" value="@Model.Header.HeaderId" />
+
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold text-danger">
+            <i class="bx bx-x-circle me-1"></i> Reject Voucher
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="alert alert-danger py-2 small mb-3">
+            <i class="bx bx-error-circle me-1"></i>
+            <strong>Warning:</strong> Rejecting a voucher permanently terminates the approval workflow. It cannot be approved later.
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Mandatory Rejection Reason / Comments:</label>
+            <textarea name="Comments" id="rejectReason" class="form-control" rows="3" placeholder="Provide mandatory explanation for rejection" required maxlength="100"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">
+            <i class="bx bx-x me-1"></i> Confirm Rejection
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: AUTH INFO (Detailed SQL Server Audit Trail) -->
+<div class="modal fade" id="modalAuthInfo" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-primary">
+          <i class="bx bx-info-circle me-1"></i> Authorization Info &amp; Audit Trail
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <h6 class="fw-bold mb-2">Voucher Workflow Overview</h6>
+        <div class="row g-2 mb-4 bg-lighter p-3 rounded border">
+          <div class="col-sm-4">
+            <span class="text-muted small d-block">Voucher No:</span>
+            <strong>@Model.Header.VoucherNo</strong>
+          </div>
+          <div class="col-sm-4">
+            <span class="text-muted small d-block">Amount:</span>
+            <strong class="text-primary">₹@Model.Header.Amount.ToString("N2")</strong>
+          </div>
+          <div class="col-sm-4">
+            <span class="text-muted small d-block">Status:</span>
+            <span class="badge @authBadgeClass">@Model.Header.AuthStatusDescription</span>
+          </div>
+        </div>
+
+        <h6 class="fw-bold mb-2">Assigned Tasks &amp; Alerts (t_Authdata)</h6>
+        <div class="table-responsive mb-4">
+          <table class="table table-sm table-hover border">
+            <thead class="table-light">
+              <tr>
+                <th>Step</th>
+                <th>Alert Type</th>
+                <th>Level</th>
+                <th>Assigned User</th>
+                <th>Status</th>
+                <th>Actioned By</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              @foreach (var slot in Model.ApprovalSlots)
+              {
+                <tr>
+                  <td>@slot.StepOrder</td>
+                  <td><span class="badge bg-label-info">@slot.AlertTypeDescription</span></td>
+                  <td>Level @slot.Level</td>
+                  <td>@slot.AssignedUsername</td>
+                  <td>
+                    <span class="badge @(slot.Status == 1 ? "bg-label-success" : slot.Status == 2 ? "bg-label-danger" : slot.IsCurrentActiveStage ? "bg-label-warning" : "bg-label-secondary")">
+                      @slot.StatusDescription
+                    </span>
+                  </td>
+                  <td>@(slot.ActionedByUsername ?? "—")</td>
+                  <td>@(slot.ActionDate.HasValue ? slot.ActionDate.Value.ToString("yyyy-MM-dd HH:mm") : "—")</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <h6 class="fw-bold mb-2">Immutable Audit History (t_ApprovalHistory)</h6>
+        @if (!Model.History.Any())
+        {
+          <p class="text-muted small">No audit events recorded yet.</p>
         }
-    </script>
-}
+        else
+        {
+          <div class="table-responsive">
+            <table class="table table-sm table-striped border">
+              <thead class="table-light">
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Action</th>
+                  <th>Actor</th>
+                  <th>Stage</th>
+                  <th>Comments</th>
+                </tr>
+              </thead>
+              <tbody>
+                @foreach (var h in Model.History)
+                {
+                  <tr>
+                    <td>@h.ActionDate.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    <td><span class="badge bg-label-primary">@h.Action</span></td>
+                    <td><strong>@h.ActionUsername</strong></td>
+                    <td>Step @h.StepOrder (L@h.Level)</td>
+                    <td>@(string.IsNullOrWhiteSpace(h.Comments) ? "—" : h.Comments)</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer border-top">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

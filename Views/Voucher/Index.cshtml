@@ -1,167 +1,203 @@
 @model List<ApprovalWorkflow.Models.Voucher>
 
 @{
-    ViewData["Title"] = "Financial Vouchers";
+    ViewData["Title"] = "All Vouchers";
     var pendingCount = Model.Count(v => v.AuthStatus == 0);
     var approvedCount = Model.Count(v => v.AuthStatus == 1);
     var rejectedCount = Model.Count(v => v.AuthStatus == 2);
 }
 
-<div class="row align-items-center mb-4">
-    <div class="col-md-7">
-        <h2 class="fw-bold mb-1"><i class="bi bi-wallet2 text-primary me-2"></i>Financial Vouchers</h2>
-        <p class="text-muted mb-0">Overview of financial vouchers and their database-managed approval workflow state.</p>
-    </div>
-    <div class="col-md-5 text-md-end mt-3 mt-md-0">
-        <a asp-action="Create" class="btn btn-primary px-3 py-2 shadow-sm">
-            <i class="bi bi-plus-lg me-1"></i> Create New Voucher
-        </a>
-    </div>
+<!-- Page Heading & Breadcrumb -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-bold py-1 mb-1">
+      <span class="text-muted fw-light">Dashboard /</span> Transaction Vouchers
+    </h4>
+    <p class="text-muted mb-0 small">
+      Real-time overview of financial vouchers managed under the SQL Server stored procedure workflow.
+    </p>
+  </div>
+  <div>
+    <a asp-action="Create" class="btn btn-primary btn-sm shadow-sm">
+      <i class="bx bx-plus me-1"></i> New Voucher
+    </a>
+  </div>
 </div>
 
-<!-- Metrics Cards -->
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="card p-3 border-start border-4 border-warning bg-white">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="text-muted text-uppercase fw-semibold small">Pending Approvals</span>
-                    <h3 class="fw-bold mb-0 text-warning mt-1">@pendingCount</h3>
-                </div>
-                <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning fs-3">
-                    <i class="bi bi-hourglass-split"></i>
-                </div>
+<!-- Metrics Cards (Sneat Design) -->
+<div class="row g-4 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <div class="d-flex align-items-start justify-content-between">
+          <div class="content-left">
+            <span class="text-muted small fw-semibold">Total Vouchers</span>
+            <div class="d-flex align-items-center my-1">
+              <h3 class="mb-0 me-2 fw-bold text-dark">@Model.Count</h3>
             </div>
+            <small class="text-muted">Registered in database</small>
+          </div>
+          <div class="avatar">
+            <span class="avatar-initial rounded bg-label-primary p-2">
+              <i class="bx bx-receipt fs-4"></i>
+            </span>
+          </div>
         </div>
+      </div>
     </div>
-    <div class="col-md-4">
-        <div class="card p-3 border-start border-4 border-success bg-white">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="text-muted text-uppercase fw-semibold small">Fully Approved</span>
-                    <h3 class="fw-bold mb-0 text-success mt-1">@approvedCount</h3>
-                </div>
-                <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success fs-3">
-                    <i class="bi bi-check-circle"></i>
-                </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <div class="d-flex align-items-start justify-content-between">
+          <div class="content-left">
+            <span class="text-muted small fw-semibold">Pending Approval</span>
+            <div class="d-flex align-items-center my-1">
+              <h3 class="mb-0 me-2 fw-bold text-warning">@pendingCount</h3>
             </div>
+            <small class="text-muted">In active sequential stages</small>
+          </div>
+          <div class="avatar">
+            <span class="avatar-initial rounded bg-label-warning p-2">
+              <i class="bx bx-time-five fs-4"></i>
+            </span>
+          </div>
         </div>
+      </div>
     </div>
-    <div class="col-md-4">
-        <div class="card p-3 border-start border-4 border-danger bg-white">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="text-muted text-uppercase fw-semibold small">Rejected</span>
-                    <h3 class="fw-bold mb-0 text-danger mt-1">@rejectedCount</h3>
-                </div>
-                <div class="bg-danger bg-opacity-10 p-3 rounded-circle text-danger fs-3">
-                    <i class="bi bi-x-circle"></i>
-                </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <div class="d-flex align-items-start justify-content-between">
+          <div class="content-left">
+            <span class="text-muted small fw-semibold">Fully Approved</span>
+            <div class="d-flex align-items-center my-1">
+              <h3 class="mb-0 me-2 fw-bold text-success">@approvedCount</h3>
             </div>
+            <small class="text-muted">Completed &amp; Posted</small>
+          </div>
+          <div class="avatar">
+            <span class="avatar-initial rounded bg-label-success p-2">
+              <i class="bx bx-check-circle fs-4"></i>
+            </span>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <div class="d-flex align-items-start justify-content-between">
+          <div class="content-left">
+            <span class="text-muted small fw-semibold">Rejected</span>
+            <div class="d-flex align-items-center my-1">
+              <h3 class="mb-0 me-2 fw-bold text-danger">@rejectedCount</h3>
+            </div>
+            <small class="text-muted">Terminated workflows</small>
+          </div>
+          <div class="avatar">
+            <span class="avatar-initial rounded bg-label-danger p-2">
+              <i class="bx bx-x-circle fs-4"></i>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- Voucher Table -->
+<!-- Vouchers Table Card (Sneat Table) -->
 <div class="card shadow-sm border-0">
-    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-        <h5 class="fw-bold mb-0 text-secondary">
-            <i class="bi bi-table me-2"></i>Registered Vouchers
-        </h5>
-        <span class="badge bg-light text-dark border">Total: @Model.Count</span>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light text-secondary small text-uppercase">
-                <tr>
-                    <th scope="col" class="ps-4">Voucher No</th>
-                    <th scope="col">Date</th>
-                    <th scope="col">Narration</th>
-                    <th scope="col" class="text-end">Amount (₹)</th>
-                    <th scope="col" class="text-center">Workflow Level</th>
-                    <th scope="col" class="text-center">Current Status</th>
-                    <th scope="col">Current Assignee</th>
-                    <th scope="col">Post Date</th>
-                    <th scope="col" class="text-end pe-4">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (!Model.Any())
-                {
-                    <tr>
-                        <td colspan="9" class="text-center py-5 text-muted">
-                            <i class="bi bi-folder2-open fs-1 text-secondary opacity-50 d-block mb-2"></i>
-                            No vouchers found. Create your first voucher to initiate the approval workflow!
-                        </td>
-                    </tr>
-                }
-                else
-                {
-                    @foreach (var voucher in Model)
-                    {
-                        <tr>
-                            <td class="ps-4 fw-semibold text-primary">
-                                <a asp-action="Details" asp-route-id="@voucher.HeaderId" class="text-decoration-none">
-                                    @voucher.VoucherNo
-                                </a>
-                            </td>
-                            <td>@voucher.Date.ToString("yyyy-MM-dd")</td>
-                            <td>
-                                <span class="text-truncate d-inline-block" style="max-width: 220px;" title="@voucher.Narration">
-                                    @(string.IsNullOrWhiteSpace(voucher.Narration) ? "—" : voucher.Narration)
-                                </span>
-                            </td>
-                            <td class="text-end fw-bold">
-                                ₹@voucher.Amount.ToString("N2")
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-info bg-opacity-10 text-dark border border-info border-opacity-25 px-2 py-1">
-                                    Level @voucher.WorkflowLevel
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                @if (voucher.AuthStatus == 0)
-                                {
-                                    <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Pending</span>
-                                }
-                                else if (voucher.AuthStatus == 1)
-                                {
-                                    <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Approved</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Rejected</span>
-                                }
-                            </td>
-                            <td>
-                                @if (voucher.AuthStatus == 0 && voucher.CurrentPendingUsername != null)
-                                {
-                                    <span class="fw-semibold text-dark">
-                                        <i class="bi bi-person-fill text-primary me-1"></i>@voucher.CurrentPendingUsername
-                                    </span>
-                                    <span class="text-muted small d-block">Stage @voucher.CurrentPendingStepOrder</span>
-                                }
-                                else if (voucher.AuthStatus == 1)
-                                {
-                                    <span class="text-success small"><i class="bi bi-check2-all me-1"></i>Completed</span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted small">Terminated</span>
-                                }
-                            </td>
-                            <td>
-                                @(voucher.PostDate.HasValue ? voucher.PostDate.Value.ToString("yyyy-MM-dd") : "—")
-                            </td>
-                            <td class="text-end pe-4">
-                                <a asp-action="Details" asp-route-id="@voucher.HeaderId" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-eye me-1"></i> Details & 4-Slot View
-                                </a>
-                            </td>
-                        </tr>
-                    }
-                }
-            </tbody>
-        </table>
-    </div>
+  <div class="card-header border-bottom py-3 d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0 fw-bold text-dark">
+      <i class="bx bx-table text-primary me-2"></i>Financial Voucher Records (t_Header)
+    </h5>
+    <span class="badge bg-label-secondary">@Model.Count items</span>
+  </div>
+
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Voucher No</th>
+          <th>Date</th>
+          <th>Narration</th>
+          <th class="text-end">Amount (₹)</th>
+          <th class="text-center">Workflow Level</th>
+          <th class="text-center">Status</th>
+          <th>Posting Date</th>
+          <th class="text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="table-border-bottom-0">
+        @if (!Model.Any())
+        {
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bx bx-folder-open fs-1 d-block mb-2 text-secondary opacity-50"></i>
+              No voucher records found. Click <strong>New Voucher</strong> to initialize your first transaction!
+            </td>
+          </tr>
+        }
+        else
+        {
+          @foreach (var voucher in Model)
+          {
+            string statusBadgeClass = voucher.AuthStatus switch
+            {
+                0 => "bg-label-warning",
+                1 => "bg-label-success",
+                2 => "bg-label-danger",
+                _ => "bg-label-secondary"
+            };
+            string statusIcon = voucher.AuthStatus switch
+            {
+                0 => "bx-time-five",
+                1 => "bx-check-circle",
+                2 => "bx-x-circle",
+                _ => "bx-help-circle"
+            };
+
+            <tr>
+              <td>
+                <a asp-action="Details" asp-route-id="@voucher.HeaderId" class="fw-bold text-primary">
+                  <i class="bx bx-file me-1"></i>@voucher.VoucherNo
+                </a>
+              </td>
+              <td>@voucher.Date.ToString("yyyy-MM-dd")</td>
+              <td>
+                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="@voucher.Narration">
+                  @(string.IsNullOrWhiteSpace(voucher.Narration) ? "—" : voucher.Narration)
+                </span>
+              </td>
+              <td class="text-end fw-bold text-dark">
+                ₹@voucher.Amount.ToString("N2")
+              </td>
+              <td class="text-center">
+                <span class="badge bg-label-info">Level @voucher.WorkflowLevel</span>
+              </td>
+              <td class="text-center">
+                <span class="badge @statusBadgeClass">
+                  <i class="bx @statusIcon me-1"></i>@voucher.AuthStatusDescription
+                </span>
+              </td>
+              <td>
+                @(voucher.PostDate.HasValue ? voucher.PostDate.Value.ToString("yyyy-MM-dd") : "—")
+              </td>
+              <td class="text-center">
+                <a asp-action="Details" asp-route-id="@voucher.HeaderId" class="btn btn-outline-primary btn-sm px-2 py-1">
+                  <i class="bx bx-show me-1"></i> Approval Page
+                </a>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
 </div>

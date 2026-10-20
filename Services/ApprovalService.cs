@@ -61,14 +61,16 @@ namespace ApprovalWorkflow.Services
                 using var connection = _connectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                using var command = new SqlCommand("dbo.usp_ApproveVoucher", connection)
+                // Master requirement: Unified usp_ApprovalWorkflow procedure for SAVE, APPROVE, REJECT
+                using var command = new SqlCommand("dbo.usp_ApprovalWorkflow", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
 
-                command.Parameters.Add("@iHeaderId", SqlDbType.Int).Value = headerId;
-                command.Parameters.Add("@ActingUserId", SqlDbType.Int).Value = actingUserId;
-                command.Parameters.Add("@Comments", SqlDbType.NVarChar, 100).Value =
+                command.Parameters.Add("@Action", SqlDbType.NVarChar, 10).Value = "APPROVE";
+                command.Parameters.Add("@HeaderId", SqlDbType.Int).Value = headerId;
+                command.Parameters.Add("@UserId", SqlDbType.Int).Value = actingUserId;
+                command.Parameters.Add("@UserComment", SqlDbType.NVarChar, 100).Value =
                     string.IsNullOrWhiteSpace(comments) ? (object)DBNull.Value : comments.Trim();
 
                 var pResponseMessage = command.Parameters.Add("@ResponseMessage", SqlDbType.NVarChar, 250);
@@ -99,20 +101,22 @@ namespace ApprovalWorkflow.Services
             {
                 if (string.IsNullOrWhiteSpace(comments))
                 {
-                    return OperationResult.Fail("Comments are mandatory when rejecting a voucher.");
+                    return OperationResult.Fail("Mandatory comments are required when rejecting a voucher.");
                 }
 
                 using var connection = _connectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                using var command = new SqlCommand("dbo.usp_RejectVoucher", connection)
+                // Master requirement: Unified usp_ApprovalWorkflow procedure for SAVE, APPROVE, REJECT
+                using var command = new SqlCommand("dbo.usp_ApprovalWorkflow", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
 
-                command.Parameters.Add("@iHeaderId", SqlDbType.Int).Value = headerId;
-                command.Parameters.Add("@ActingUserId", SqlDbType.Int).Value = actingUserId;
-                command.Parameters.Add("@Comments", SqlDbType.NVarChar, 100).Value = comments.Trim();
+                command.Parameters.Add("@Action", SqlDbType.NVarChar, 10).Value = "REJECT";
+                command.Parameters.Add("@HeaderId", SqlDbType.Int).Value = headerId;
+                command.Parameters.Add("@UserId", SqlDbType.Int).Value = actingUserId;
+                command.Parameters.Add("@UserComment", SqlDbType.NVarChar, 100).Value = comments.Trim();
 
                 var pResponseMessage = command.Parameters.Add("@ResponseMessage", SqlDbType.NVarChar, 250);
                 pResponseMessage.Direction = ParameterDirection.Output;
@@ -207,6 +211,57 @@ namespace ApprovalWorkflow.Services
         {
             var users = await GetAllUsersAsync();
             return users.FirstOrDefault(u => u.UserId == userId);
+        }
+
+        public async Task<(bool Success, User? User, string Message)> ValidateUserLoginAsync(string usernameOrEmail, string password)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                await connection.OpenAsync();
+
+                using var command = new SqlCommand("dbo.usp_ValidateUserLogin", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.Add("@UsernameOrEmail", SqlDbType.NVarChar, 50).Value = usernameOrEmail.Trim();
+                command.Parameters.Add("@Password", SqlDbType.NVarChar, 256).Value = password;
+
+                var pSuccess = command.Parameters.Add("@Success", SqlDbType.Bit);
+                pSuccess.Direction = ParameterDirection.Output;
+
+                var pUserId = command.Parameters.Add("@UserId", SqlDbType.Int);
+                pUserId.Direction = ParameterDirection.Output;
+
+                var pUsername = command.Parameters.Add("@Username", SqlDbType.NVarChar, 20);
+                pUsername.Direction = ParameterDirection.Output;
+
+                var pUserRole = command.Parameters.Add("@UserRole", SqlDbType.Int);
+                pUserRole.Direction = ParameterDirection.Output;
+
+                var pMessage = command.Parameters.Add("@Message", SqlDbType.NVarChar, 250);
+                pMessage.Direction = ParameterDirection.Output;
+
+                await command.ExecuteNonQueryAsync();
+
+                bool success = pSuccess.Value != DBNull.Value && (bool)pSuccess.Value;
+                string message = pMessage.Value?.ToString() ?? "Unknown login response.";
+
+                if (success && pUserId.Value != DBNull.Value)
+                {
+                    int userId = (int)pUserId.Value;
+                    var user = await GetUserByIdAsync(userId);
+                    return (true, user, message);
+                }
+
+                return (false, null, message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validating user login for {Username}", usernameOrEmail);
+                return (false, null, "Authentication service error: " + ex.Message);
+            }
         }
     }
 }

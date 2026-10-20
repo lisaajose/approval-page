@@ -9,6 +9,13 @@ namespace ApprovalWorkflow.Models
         public decimal Amount { get; set; }
         public int AuthStatus { get; set; }
         public string StatusDescription { get; set; } = string.Empty;
+        public string AuthStatusDescription => !string.IsNullOrEmpty(StatusDescription) ? StatusDescription : AuthStatus switch
+        {
+            0 => "Pending",
+            1 => "Approved",
+            2 => "Rejected",
+            _ => "Unknown"
+        };
         public DateTime? PostDate { get; set; }
         public DateTime CreatedDate { get; set; }
         public int? CreatedBy { get; set; }

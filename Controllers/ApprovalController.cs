@@ -24,6 +24,10 @@ namespace ApprovalWorkflow.Controllers
         public async Task<IActionResult> Pending()
         {
             var currentUser = await _userContextService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path });
+            }
             ViewBag.CurrentUser = currentUser;
 
             var items = await _approvalService.GetPendingApprovalsAsync(currentUser.UserId);
@@ -35,6 +39,10 @@ namespace ApprovalWorkflow.Controllers
         public async Task<IActionResult> Approve(ApprovalActionInputModel model)
         {
             var currentUser = await _userContextService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path });
+            }
 
             var result = await _approvalService.ApproveVoucherAsync(model.HeaderId, currentUser.UserId, model.Comments);
 
@@ -55,6 +63,10 @@ namespace ApprovalWorkflow.Controllers
         public async Task<IActionResult> Reject(ApprovalActionInputModel model)
         {
             var currentUser = await _userContextService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path });
+            }
 
             if (string.IsNullOrWhiteSpace(model.Comments))
             {
@@ -80,6 +92,10 @@ namespace ApprovalWorkflow.Controllers
         public async Task<IActionResult> Notifications()
         {
             var currentUser = await _userContextService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path });
+            }
             ViewBag.CurrentUser = currentUser;
 
             var notifications = await _approvalService.GetNotificationsAsync(currentUser.UserId);

@@ -16,6 +16,9 @@ namespace ApprovalWorkflow.Models
         public int Status { get; set; }
         public DateTime CreatedDate { get; set; }
         public string? CreatedByUsername { get; set; }
+        public DateTime? ActionDate { get; set; }
+        public int RecipientUserId { get; set; }
+        public string RecipientUsername { get; set; } = string.Empty;
     }
 
     public class ApprovalHistoryItem
@@ -25,6 +28,7 @@ namespace ApprovalWorkflow.Models
         public int Level { get; set; }
         public int StepOrder { get; set; }
         public int ActionUser { get; set; }
+        public int ActionUserId { get => ActionUser; set => ActionUser = value; }
         public string ActionUsername { get; set; } = string.Empty;
         public string Action { get; set; } = string.Empty;
         public string? Comments { get; set; }
