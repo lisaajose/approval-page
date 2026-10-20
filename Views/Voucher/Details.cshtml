@@ -108,9 +108,14 @@
           </h5>
           <small class="text-muted">Arranged vertically for JP, LISA, GAUTHAM, and EDWIN</small>
         </div>
-        <span class="badge bg-label-secondary">
-          Workflow Level @Model.Header.WorkflowLevel
-        </span>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-label-secondary">
+            Workflow Level @Model.Header.WorkflowLevel
+          </span>
+          <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#modalAuthInfo">
+            <i class="bx bx-info-circle me-1"></i> Auth Info
+          </button>
+        </div>
       </div>
 
       <div class="card-body p-4">
@@ -271,6 +276,9 @@
                           </button>
                           <button type="button" class="btn btn-danger btn-sm px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalReject">
                             <i class="bx bx-x-circle me-1"></i> Reject Voucher
+                          </button>
+                          <button type="button" class="btn btn-info btn-sm px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAuthInfo">
+                            <i class="bx bx-info-circle me-1"></i> Auth Info
                           </button>
                         </div>
                       </form>
