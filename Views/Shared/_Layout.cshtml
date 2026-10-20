@@ -22,7 +22,7 @@
 
     <title>@ViewData["Title"] - Approval Workflow System</title>
 
-    <meta name="description" content="Sneat Bootstrap 5 Approval Workflow Management System" />
+    <meta name="description" content="Approval Workflow Management System" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="~/assets/img/favicon/favicon.ico" />
@@ -154,16 +154,7 @@
               </a>
             </div>
 
-            <div class="navbar-nav-right d-flex align-items-center justify-content-between w-100" id="navbar-collapse">
-              <div class="navbar-nav align-items-center">
-                <div class="nav-item d-flex align-items-center">
-                  <span class="badge bg-label-primary px-3 py-2 fw-semibold">
-                    <i class="bx bx-shield-quarter me-1"></i>
-                    SQL Server Stored Procedure Engine
-                  </span>
-                </div>
-              </div>
-
+            <div class="navbar-nav-right d-flex align-items-center justify-content-end w-100" id="navbar-collapse">
               <ul class="navbar-nav flex-row align-items-center ms-auto">
                 @if (activeUser != null)
                 {
@@ -180,7 +171,7 @@
                       </div>
                       <div class="d-none d-md-block text-start">
                         <span class="fw-semibold d-block">@activeUser.Username</span>
-                        <small class="text-muted">ID: @activeUser.UserId &bull; @(activeUser.UserRole == 1 ? "Admin" : "Approver")</small>
+                        <small class="text-muted">@(activeUser.UserRole == 1 ? "Admin" : "Approver")</small>
                       </div>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow">
@@ -200,7 +191,7 @@
                         </div>
                       </li>
                       <li><div class="dropdown-divider"></div></li>
-                      <li class="dropdown-header text-uppercase small text-muted">Quick Switch Actor (Testing)</li>
+                      <li class="dropdown-header text-uppercase small text-muted">Switch Actor</li>
                       @foreach (var user in allUsers.Where(u => u.Bactive == true).Take(6))
                       {
                         <li>
@@ -210,7 +201,7 @@
                             <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
                             <button type="submit" class="dropdown-item d-flex align-items-center justify-content-between @(user.UserId == activeUser.UserId ? "active" : "")">
                               <span>
-                                <i class="bx bx-user me-2"></i>@user.Username (ID: @user.UserId)
+                                <i class="bx bx-user me-2"></i>@user.Username
                               </span>
                               @if (user.UserId == activeUser.UserId)
                               {
@@ -278,10 +269,7 @@
             <footer class="content-footer footer bg-footer-theme">
               <div class="container-xxl d-flex flex-wrap justify-content-between py-3 flex-md-row flex-column">
                 <div class="mb-2 mb-md-0">
-                  &copy; @DateTime.Now.Year Approval Workflow Management System &bull; Powered by Sneat Bootstrap 5 &amp; Microsoft SQL Server
-                </div>
-                <div>
-                  <span class="badge bg-label-info">Sneat Admin Free Template</span>
+                  &copy; @DateTime.Now.Year Approval Workflow Management System
                 </div>
               </div>
             </footer>

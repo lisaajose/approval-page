@@ -12,7 +12,7 @@
       <span class="text-muted fw-light">Vouchers /</span> New Transaction Voucher
     </h4>
     <p class="text-muted mb-0 small">
-      Enter transaction details. Saving will invoke <code>dbo.usp_ApprovalWorkflow</code> (Action: <code>SAVE</code>).
+      Enter transaction details to initiate the approval workflow.
     </p>
   </div>
   <div>
@@ -77,10 +77,9 @@
           <!-- Creator Context -->
           <div class="alert alert-light border py-2 px-3 mb-4 d-flex justify-content-between align-items-center">
             <div class="small">
-              <span class="text-muted d-block">Authenticated Creator Context:</span>
-              <strong class="text-dark"><i class="bx bx-user-check me-1 text-primary"></i>@currentUser.Username</strong> (UserId: @currentUser.UserId)
+              <span class="text-muted d-block">Authenticated Creator:</span>
+              <strong class="text-dark"><i class="bx bx-user-check me-1 text-primary"></i>@currentUser.Username</strong>
             </div>
-            <span class="badge bg-label-info">Action: SAVE</span>
           </div>
 
           <!-- Buttons -->
@@ -114,7 +113,7 @@
             Sequential approvers will be determined by SQL Server.
           </div>
           <div class="small text-muted" id="previewNotif">
-            <i class="bx bx-bell me-1"></i> Notification: JP (UserId 1)
+            <i class="bx bx-bell me-1"></i> Notification: JP
           </div>
         </div>
 
@@ -131,28 +130,28 @@
           <div class="list-group-item d-flex justify-content-between align-items-center">
             <div>
               <strong class="text-dark">Level 1: ₹50.01 – ₹100</strong>
-              <div class="text-muted">Lisa (UserId 13); JP notified</div>
+              <div class="text-muted">Lisa; JP notified</div>
             </div>
             <span class="badge bg-label-primary">1 Approver</span>
           </div>
           <div class="list-group-item d-flex justify-content-between align-items-center">
             <div>
               <strong class="text-dark">Level 2: ₹100.01 – ₹500</strong>
-              <div class="text-muted">Lisa &rarr; Gautham (UserId 1012); JP notified</div>
+              <div class="text-muted">Lisa &rarr; Gautham; JP notified</div>
             </div>
             <span class="badge bg-label-info">2 Approvers</span>
           </div>
           <div class="list-group-item d-flex justify-content-between align-items-center">
             <div>
               <strong class="text-dark">Level 3: ₹500.01 – ₹1,000</strong>
-              <div class="text-muted">Lisa &rarr; Gautham &rarr; Edwin (UserId 5); JP notified</div>
+              <div class="text-muted">Lisa &rarr; Gautham &rarr; Edwin; JP notified</div>
             </div>
             <span class="badge bg-label-warning">3 Approvers</span>
           </div>
           <div class="list-group-item d-flex justify-content-between align-items-center">
             <div>
               <strong class="text-dark">Level 4: &gt; ₹1,000</strong>
-              <div class="text-muted">Lisa &rarr; Gautham &rarr; Edwin &rarr; JP (UserId 1); JP notified</div>
+              <div class="text-muted">Lisa &rarr; Gautham &rarr; Edwin &rarr; JP; JP notified</div>
             </div>
             <span class="badge bg-label-danger">4 Approvers</span>
           </div>
@@ -192,25 +191,25 @@
           previewBadge.textContent = "Level 1";
           previewBadge.className = "badge bg-primary me-2";
           previewTitle.textContent = "Low Amount (₹50.01 – ₹100)";
-          previewSequence.innerHTML = "Required Sequence: <strong>Lisa (13)</strong>";
+          previewSequence.innerHTML = "Required Sequence: <strong>Lisa</strong>";
           liveCard.className = "card bg-label-primary border-0 mb-4 p-3";
         } else if (val <= 500.00) {
           previewBadge.textContent = "Level 2";
           previewBadge.className = "badge bg-info me-2";
           previewTitle.textContent = "Medium Amount (₹100.01 – ₹500)";
-          previewSequence.innerHTML = "Required Sequence: <strong>Lisa (13) &rarr; Gautham (1012)</strong>";
+          previewSequence.innerHTML = "Required Sequence: <strong>Lisa &rarr; Gautham</strong>";
           liveCard.className = "card bg-label-info border-0 mb-4 p-3";
         } else if (val <= 1000.00) {
           previewBadge.textContent = "Level 3";
           previewBadge.className = "badge bg-warning me-2";
           previewTitle.textContent = "High Amount (₹500.01 – ₹1,000)";
-          previewSequence.innerHTML = "Required Sequence: <strong>Lisa (13) &rarr; Gautham (1012) &rarr; Edwin (5)</strong>";
+          previewSequence.innerHTML = "Required Sequence: <strong>Lisa &rarr; Gautham &rarr; Edwin</strong>";
           liveCard.className = "card bg-label-warning border-0 mb-4 p-3";
         } else {
           previewBadge.textContent = "Level 4";
           previewBadge.className = "badge bg-danger me-2";
           previewTitle.textContent = "Executive Amount (> ₹1,000)";
-          previewSequence.innerHTML = "Required Sequence: <strong>Lisa (13) &rarr; Gautham (1012) &rarr; Edwin (5) &rarr; JP (1)</strong>";
+          previewSequence.innerHTML = "Required Sequence: <strong>Lisa &rarr; Gautham &rarr; Edwin &rarr; JP</strong>";
           liveCard.className = "card bg-label-danger border-0 mb-4 p-3";
         }
       }

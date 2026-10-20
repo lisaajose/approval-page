@@ -70,11 +70,11 @@
     <!-- Fields Grid -->
     <div class="row g-4 mb-3">
       <div class="col-sm-6 col-md-3">
-        <span class="text-muted small d-block mb-1">Voucher Number (Svoucherno)</span>
+        <span class="text-muted small d-block mb-1">Voucher Number</span>
         <span class="fw-semibold text-dark fs-6">@Model.Header.VoucherNo</span>
       </div>
       <div class="col-sm-6 col-md-3">
-        <span class="text-muted small d-block mb-1">Voucher Date (dDate)</span>
+        <span class="text-muted small d-block mb-1">Voucher Date</span>
         <span class="fw-semibold text-dark fs-6">@Model.Header.Date.ToString("yyyy-MM-dd")</span>
       </div>
       <div class="col-sm-6 col-md-3">
@@ -82,13 +82,13 @@
         <span class="fw-bold text-primary fs-5">₹@Model.Header.Amount.ToString("N2")</span>
       </div>
       <div class="col-sm-6 col-md-3">
-        <span class="text-muted small d-block mb-1">Posting Date (dPostDate)</span>
+        <span class="text-muted small d-block mb-1">Posting Date</span>
         <span class="fw-semibold fs-6 @(Model.Header.PostDate.HasValue ? "text-success" : "text-muted")">
           @(Model.Header.PostDate.HasValue ? Model.Header.PostDate.Value.ToString("yyyy-MM-dd") : "Not Posted (Pending)")
         </span>
       </div>
       <div class="col-12">
-        <span class="text-muted small d-block mb-1">Narration (sNarration)</span>
+        <span class="text-muted small d-block mb-1">Narration</span>
         <p class="mb-0 bg-lighter p-2 rounded text-secondary border">
           @(string.IsNullOrWhiteSpace(Model.Header.Narration) ? "No narration provided." : Model.Header.Narration)
         </p>
@@ -98,8 +98,8 @@
 </div>
 
 <div class="row g-4">
-  <!-- LEFT COLUMN: The Four-Cell Approval Details Panel -->
-  <div class="col-lg-8">
+  <!-- The Four-Cell Approval Details Panel -->
+  <div class="col-12">
     <div class="card shadow-sm border-0 mb-4">
       <div class="card-header d-flex justify-content-between align-items-center border-bottom py-3">
         <div>
@@ -137,13 +137,6 @@
                 4 => "JP",
                 _ => "Unknown"
             };
-            int cellUserId = cellIndex switch {
-                1 => 13,
-                2 => 1012,
-                3 => 5,
-                4 => 1,
-                _ => 0
-            };
             string cellRoleDesc = cellIndex switch {
                 1 => "Level 1 Approver (₹50.01 - ₹100.00)",
                 2 => "Level 2 Approver (₹100.01 - ₹500.00)",
@@ -173,7 +166,6 @@
                     <strong class="fs-6 text-dark">
                       @cellUserName
                     </strong>
-                    <span class="text-muted small">(UserId: @cellUserId)</span>
                   </div>
 
                   <!-- Task Status Badge -->
@@ -228,14 +220,14 @@
                     <span class="text-secondary">@cellRoleDesc</span>
                   </div>
                   <div class="col-12 mt-2">
-                    <span class="text-muted d-block">Alert Message (sAlerts):</span>
+                    <span class="text-muted d-block">Alert Message:</span>
                     <div class="bg-white p-2 rounded border mt-1 text-dark fw-medium">
                       <i class="bx bx-bell text-warning me-1"></i>
                       @(isRequired ? (slot!.Alerts ?? "Approval Alert") : $"Not required for voucher amount ₹{Model.Header.Amount:N2}")
                     </div>
                   </div>
                   <div class="col-12 mt-1">
-                    <span class="text-muted d-block">User Comments (sUsercomments):</span>
+                    <span class="text-muted d-block">User Comments:</span>
                     <span class="fst-italic text-secondary">
                       @(isRequired && !string.IsNullOrWhiteSpace(slot!.UserComments) ? slot.UserComments : "No comments recorded.")
                     </span>
@@ -285,19 +277,9 @@
                     }
                     else
                     {
-                      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                        <div class="small text-muted">
-                          <i class="bx bx-lock-alt text-warning me-1"></i>
-                          Awaiting action from <strong>@slot!.AssignedUsername</strong>. Active actor is <strong>@activeUser.Username</strong>.
-                        </div>
-                        <form asp-controller="Approval" asp-action="SwitchUser" method="post" class="m-0">
-                          @Html.AntiForgeryToken()
-                          <input type="hidden" name="userId" value="@slot.AssignedUserId" />
-                          <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-                          <button type="submit" class="btn btn-outline-primary btn-sm py-1 px-2" title="Switch to @slot.AssignedUsername for testing">
-                            <i class="bx bx-refresh me-1"></i> Switch to @slot.AssignedUsername
-                          </button>
-                        </form>
+                      <div class="small text-muted">
+                        <i class="bx bx-lock-alt text-warning me-1"></i>
+                        Awaiting action from <strong>@slot!.AssignedUsername</strong>.
                       </div>
                     }
                   </div>
@@ -305,106 +287,6 @@
               </div>
             </div>
           }
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- RIGHT COLUMN: Notifications & Workflow Summary -->
-  <div class="col-lg-4">
-    <div class="d-flex flex-column gap-4">
-      <!-- JP Notifications Card -->
-      <div class="card shadow-sm border-0">
-        <div class="card-header border-bottom py-3 d-flex justify-content-between align-items-center">
-          <h5 class="card-title mb-0 fw-bold text-dark">
-            <i class="bx bx-bell text-warning me-2"></i>Notifications
-          </h5>
-          <span class="badge bg-label-warning">Alert Type 0</span>
-        </div>
-        <div class="card-body p-3">
-          <p class="text-muted small mb-3">
-            Per the supervisor specification, JP (UserId 1) receives notification alerts across all amount levels.
-            <strong>Notification records do not confer approval permissions.</strong>
-          </p>
-
-          @if (!Model.Notifications.Any())
-          {
-            <div class="alert alert-secondary py-2 small mb-0">
-              No notification records found for this voucher.
-            </div>
-          }
-          else
-          {
-            <div class="list-group list-group-flush">
-              @foreach (var notif in Model.Notifications)
-              {
-                <div class="list-group-item px-0 py-2 border-bottom">
-                  <div class="d-flex justify-content-between align-items-center mb-1">
-                    <strong class="text-dark small">@notif.RecipientUsername</strong>
-                    <span class="badge bg-label-success small">Notified</span>
-                  </div>
-                  <div class="small text-secondary mb-1">
-                    @notif.Alerts
-                  </div>
-                  @if (!string.IsNullOrWhiteSpace(notif.UserComments))
-                  {
-                    <div class="small text-muted fst-italic">
-                      "@notif.UserComments"
-                    </div>
-                  }
-                  @if (notif.ActionDate.HasValue)
-                  {
-                    <div class="text-muted small text-end" style="font-size: 0.72rem;">
-                      @notif.ActionDate.Value.ToString("yyyy-MM-dd HH:mm:ss")
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-          }
-        </div>
-      </div>
-
-      <!-- Quick Matrix Legend Card -->
-      <div class="card shadow-sm border-0">
-        <div class="card-header border-bottom py-3">
-          <h6 class="card-title mb-0 fw-bold text-dark">
-            <i class="bx bx-table text-primary me-2"></i>Approval Matrix Reference
-          </h6>
-        </div>
-        <div class="card-body p-3 small">
-          <table class="table table-sm table-borderless mb-0">
-            <tbody>
-              <tr class="@(Model.Header.WorkflowLevel == 0 ? "table-primary fw-bold" : "")">
-                <td>Level 0</td>
-                <td>₹0 – ₹50</td>
-                <td>No approval req.</td>
-              </tr>
-              <tr class="@(Model.Header.WorkflowLevel == 1 ? "table-primary fw-bold" : "")">
-                <td>Level 1</td>
-                <td>₹50.01 – ₹100</td>
-                <td>Lisa</td>
-              </tr>
-              <tr class="@(Model.Header.WorkflowLevel == 2 ? "table-primary fw-bold" : "")">
-                <td>Level 2</td>
-                <td>₹100.01 – ₹500</td>
-                <td>Lisa → Gautham</td>
-              </tr>
-              <tr class="@(Model.Header.WorkflowLevel == 3 ? "table-primary fw-bold" : "")">
-                <td>Level 3</td>
-                <td>₹500.01 – ₹1,000</td>
-                <td>Lisa → Gautham → Edwin</td>
-              </tr>
-              <tr class="@(Model.Header.WorkflowLevel == 4 ? "table-primary fw-bold" : "")">
-                <td>Level 4</td>
-                <td>> ₹1,000</td>
-                <td>Lisa → Gautham → Edwin → JP</td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="text-muted small mt-2 pt-2 border-top">
-            JP receives notification alerts across all 5 levels.
-          </div>
         </div>
       </div>
     </div>
@@ -512,7 +394,7 @@
           </div>
         </div>
 
-        <h6 class="fw-bold mb-2">Assigned Tasks &amp; Alerts (t_Authdata)</h6>
+        <h6 class="fw-bold mb-2">Assigned Tasks &amp; Alerts</h6>
         <div class="table-responsive mb-4">
           <table class="table table-sm table-hover border">
             <thead class="table-light">
@@ -547,7 +429,7 @@
           </table>
         </div>
 
-        <h6 class="fw-bold mb-2">Immutable Audit History (t_ApprovalHistory)</h6>
+        <h6 class="fw-bold mb-2">Audit History</h6>
         @if (!Model.History.Any())
         {
           <p class="text-muted small">No audit events recorded yet.</p>
