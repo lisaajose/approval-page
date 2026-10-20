@@ -1,0 +1,192 @@
+@model ApprovalWorkflow.Models.CreateVoucherViewModel
+
+@{
+    ViewData["Title"] = "Create Voucher";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="d-flex align-items-center mb-4">
+            <a asp-action="Index" class="btn btn-outline-secondary me-3 btn-sm">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+            <div>
+                <h2 class="fw-bold mb-0">Create Financial Voucher</h2>
+                <span class="text-muted small">Saving triggers <code>dbo.usp_SaveVoucher</code> to determine workflow level and approver assignments.</span>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Left: Voucher Form -->
+            <div class="col-md-7">
+                <div class="card shadow-sm border-0 p-4 bg-white">
+                    <form asp-action="Create" method="post" id="voucherForm">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="VoucherNo" class="form-label fw-semibold text-secondary"></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted"><i class="bi bi-hash"></i></span>
+                                <input asp-for="VoucherNo" class="form-control" placeholder="e.g. VOUCH-20261020-001" required />
+                            </div>
+                            <span asp-validation-for="VoucherNo" class="text-danger small"></span>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Date" class="form-label fw-semibold text-secondary"></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted"><i class="bi bi-calendar3"></i></span>
+                                    <input asp-for="Date" type="date" class="form-control" required />
+                                </div>
+                                <span asp-validation-for="Date" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Amount" class="form-label fw-semibold text-secondary"></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted">₹</span>
+                                    <input asp-for="Amount" id="txtAmount" type="number" step="0.01" min="0" class="form-control fw-bold fs-5 text-primary" placeholder="0.00" required />
+                                </div>
+                                <span asp-validation-for="Amount" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Narration" class="form-label fw-semibold text-secondary"></label>
+                            <textarea asp-for="Narration" rows="3" class="form-control" placeholder="Description of the business expenditure..."></textarea>
+                            <span asp-validation-for="Narration" class="text-danger small"></span>
+                        </div>
+
+                        <div class="p-3 bg-light rounded-3 mb-4 border d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="small text-muted d-block">Creator Context:</span>
+                                <strong class="text-dark"><i class="bi bi-person-circle me-1 text-primary"></i>@ViewBag.CurrentUser.Username</strong> (UserId: @ViewBag.CurrentUser.UserId)
+                            </div>
+                            <span class="badge bg-secondary">Passed to usp_SaveVoucher</span>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Index" class="btn btn-light px-4">Cancel</a>
+                            <button type="submit" class="btn btn-primary px-4 shadow-sm fw-semibold">
+                                <i class="bi bi-save me-1"></i> Save Voucher & Initialize Workflow
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right: Dynamic Workflow Preview & Guide Line rules -->
+            <div class="col-md-5">
+                <div class="card shadow-sm border-0 p-4 bg-white h-100">
+                    <h5 class="fw-bold text-dark mb-3">
+                        <i class="bi bi-diagram-3 text-primary me-2"></i>Workflow Level Rules
+                    </h5>
+                    
+                    <div id="liveWorkflowCard" class="alert alert-info border mb-3">
+                        <div class="d-flex align-items-center mb-1">
+                            <span class="badge bg-primary me-2" id="previewBadge">Level ?</span>
+                            <strong id="previewTitle" class="text-dark">Enter an amount</strong>
+                        </div>
+                        <div class="small text-secondary" id="previewSequence">Sequence will calculate automatically</div>
+                    </div>
+
+                    <h6 class="text-uppercase small fw-bold text-muted mt-2 mb-2">Guide Line Rules:</h6>
+                    <div class="list-group list-group-flush border rounded-3 small">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Level 0: ₹0 – ₹50</strong>
+                                <div class="text-muted">Auto-approved immediately; JP notified</div>
+                            </div>
+                            <span class="badge bg-light text-dark border">No approver</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Level 1: ₹50.01 – ₹100</strong>
+                                <div class="text-muted">1 Stage: Lisa (13); JP notified</div>
+                            </div>
+                            <span class="badge bg-info text-white">Lisa</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Level 2: ₹100.01 – ₹500</strong>
+                                <div class="text-muted">2 Stages: Lisa (13) &rarr; Gautham (1012); JP notified</div>
+                            </div>
+                            <span class="badge bg-primary text-white">Lisa &rarr; Gautham</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Level 3: ₹500.01 – ₹1,000</strong>
+                                <div class="text-muted">3 Stages: Lisa &rarr; Gautham &rarr; Edwin (5); JP notified</div>
+                            </div>
+                            <span class="badge bg-warning text-dark">3 Approvers</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Level 4: > ₹1,000</strong>
+                                <div class="text-muted">4 Stages: Lisa &rarr; Gautham &rarr; Edwin &rarr; JP (1); JP notified</div>
+                            </div>
+                            <span class="badge bg-dark text-white">4 Approvers</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 p-2 bg-light rounded text-muted small">
+                        <i class="bi bi-info-circle text-primary me-1"></i>
+                        The database stored procedure <code>dbo.usp_SaveVoucher</code> enforces this rule authoritatively via <code>dbo.fn_GetVoucherApprovalLevel</code>.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const txtAmount = document.getElementById('txtAmount');
+        const previewBadge = document.getElementById('previewBadge');
+        const previewTitle = document.getElementById('previewTitle');
+        const previewSequence = document.getElementById('previewSequence');
+
+        function updatePreview() {
+            const val = parseFloat(txtAmount.value);
+            if (isNaN(val) || val < 0) {
+                previewBadge.className = 'badge bg-secondary me-2';
+                previewBadge.textContent = 'Level ?';
+                previewTitle.textContent = 'Enter a valid amount';
+                previewSequence.textContent = 'Amount cannot be negative.';
+                return;
+            }
+
+            if (val <= 50.00) {
+                previewBadge.className = 'badge bg-success me-2';
+                previewBadge.textContent = 'Level 0';
+                previewTitle.textContent = 'Micro Voucher (<= ₹50)';
+                previewSequence.textContent = 'Auto-approved on creation; Notification recorded for JP.';
+            } else if (val <= 100.00) {
+                previewBadge.className = 'badge bg-info text-white me-2';
+                previewBadge.textContent = 'Level 1';
+                previewTitle.textContent = 'Lisa Approval (₹50.01 - ₹100)';
+                previewSequence.textContent = '1-Stage Approval: Assigned to Lisa (UserId 13). JP notified.';
+            } else if (val <= 500.00) {
+                previewBadge.className = 'badge bg-primary me-2';
+                previewBadge.textContent = 'Level 2';
+                previewTitle.textContent = 'Lisa -> Gautham (₹100.01 - ₹500)';
+                previewSequence.textContent = '2-Stage Sequential: Lisa (Step 1) -> Gautham (Step 2). JP notified.';
+            } else if (val <= 1000.00) {
+                previewBadge.className = 'badge bg-warning text-dark me-2';
+                previewBadge.textContent = 'Level 3';
+                previewTitle.textContent = 'Lisa -> Gautham -> Edwin (₹500.01 - ₹1000)';
+                previewSequence.textContent = '3-Stage Sequential: Lisa (1) -> Gautham (2) -> Edwin (3). JP notified.';
+            } else {
+                previewBadge.className = 'badge bg-danger me-2';
+                previewBadge.textContent = 'Level 4';
+                previewTitle.textContent = 'High Value Voucher (> ₹1000)';
+                previewSequence.textContent = '4-Stage Sequential: Lisa (1) -> Gautham (2) -> Edwin (3) -> JP (4). JP notified.';
+            }
+        }
+
+        txtAmount.addEventListener('input', updatePreview);
+        updatePreview();
+    </script>
+}

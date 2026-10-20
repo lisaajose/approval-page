@@ -1,0 +1,195 @@
+@inject ApprovalWorkflow.Services.IApprovalService ApprovalService
+@inject ApprovalWorkflow.Services.IUserContextService UserContextService
+
+@{
+    var activeUser = await UserContextService.GetCurrentUserAsync();
+    var allUsers = await ApprovalService.GetAllUsersAsync();
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Approval Workflow System</title>
+    
+    <!-- Google Fonts & Bootstrap Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    
+    <style>
+        :root {
+            --primary-navy: #0f172a;
+            --sidebar-navy: #1e293b;
+            --accent-blue: #2563eb;
+            --accent-indigo: #4f46e5;
+            --card-border: #e2e8f0;
+            --bg-subtle: #f8fafc;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-subtle);
+            color: #1e293b;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar-custom {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #ffffff !important;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .nav-link {
+            font-weight: 500;
+            color: #cbd5e1 !important;
+            transition: all 0.2s ease;
+            padding: 0.5rem 0.85rem !important;
+            border-radius: 6px;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #ffffff !important;
+            background-color: rgba(255,255,255,0.08);
+        }
+        .user-switcher-badge {
+            background-color: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 4px 12px;
+            color: #f8fafc;
+            font-size: 0.875rem;
+        }
+        .card {
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .badge-level {
+            font-weight: 600;
+            padding: 0.35rem 0.65rem;
+            border-radius: 6px;
+        }
+        .footer {
+            margin-top: auto;
+            background-color: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            padding: 1.25rem 0;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark navbar-custom py-2">
+            <div class="container-fluid px-4">
+                <a class="navbar-brand" asp-controller="Voucher" asp-action="Index">
+                    <i class="bi bi-shield-check text-primary fs-4"></i>
+                    <span>ApprovalFlow</span>
+                </a>
+                
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                
+                <div class="collapse navbar-collapse" id="mainNavbar">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Voucher" asp-action="Index">
+                                <i class="bi bi-receipt me-1"></i> Vouchers
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Voucher" asp-action="Create">
+                                <i class="bi bi-plus-circle me-1"></i> New Voucher
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Approval" asp-action="Pending">
+                                <i class="bi bi-inbox me-1"></i> Pending Approvals
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Approval" asp-action="Notifications">
+                                <i class="bi bi-bell me-1"></i> Notifications
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Active User Switcher (Server validated session / cookie simulation) -->
+                    <div class="d-flex align-items-center gap-3">
+                        <form asp-controller="Approval" asp-action="SwitchUser" method="post" class="d-flex align-items-center gap-2 m-0">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                            <span class="text-light small text-nowrap">
+                                <i class="bi bi-person-circle me-1 text-info"></i> Active Actor:
+                            </span>
+                            <select name="userId" class="form-select form-select-sm user-switcher-badge bg-dark text-white border-secondary" onchange="this.form.submit()">
+                                @foreach (var user in allUsers)
+                                {
+                                    <!option value="@user.UserId" @(user.UserId == activeUser.UserId ? "selected" : "")>
+                                        @user.Username (ID: @user.UserId) @(user.UserId == 1 ? "[JP - Admin]" : user.UserId == 13 ? "[Lisa]" : user.UserId == 1012 ? "[Gautham]" : user.UserId == 5 ? "[Edwin]" : "")
+                                    </!option>
+                                }
+                            </select>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container-fluid px-4 py-4 flex-grow-1">
+        <!-- Toast / Alert notifications -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show d-flex align-items-center mb-4 shadow-sm" role="alert">
+                <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+                <div>@TempData["SuccessMessage"]</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center mb-4 shadow-sm" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                <div>@TempData["ErrorMessage"]</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <main role="main">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="footer text-muted">
+        <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <strong>Amount-Based Approval Workflow System</strong> &bull; .NET + SQL Server Express
+            </div>
+            <div class="small">
+                Active Database: <span class="badge bg-secondary">ApprovalWorkflowDB</span> &bull; 
+                Active User: <span class="badge bg-primary">@activeUser.Username (ID: @activeUser.UserId)</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
