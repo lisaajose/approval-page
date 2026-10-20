@@ -6,8 +6,9 @@
 --              (Password, Email) without inventing false real credentials.
 -- ==============================================================================
 
-USE [ApprovalWorkflowDB];
-GO
+-- NOTE: In Azure SQL Database, the USE statement is not supported. Connect directly to [ApprovalWorkflowDB].
+-- USE [ApprovalWorkflowDB];
+-- GO
 
 PRINT 'Seeding initial user data into [M_Users]...';
 

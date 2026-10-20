@@ -4,8 +4,16 @@
 -- Target Engine: Microsoft SQL Server Express 2025 / 2022 / 2019
 -- ==============================================================================
 
-USE [master];
-GO
+-- NOTE FOR AZURE SQL DATABASE:
+-- Azure SQL Database does not support 'USE [master]' or running standard CREATE DATABASE
+-- scripts from SSMS without Azure-specific edition parameters.
+-- For Azure SQL, create the database 'ApprovalWorkflowDB' in the Azure Portal or via Azure CLI:
+--   az sql db create --resource-group <rg> --server <server> --name ApprovalWorkflowDB --service-objective Basic
+-- Also, Azure SQL Database has READ_COMMITTED_SNAPSHOT enabled by default.
+-- For local/on-premises SQL Server instances, run the script below connected to master:
+
+-- USE [master];
+-- GO
 
 IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'ApprovalWorkflowDB')
 BEGIN

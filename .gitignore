@@ -1,6 +1,8 @@
 ## Visual Studio / .NET Core / C#
 [Bb]in/
 [Oo]bj/
+publish/
+publish_test/
 [Ll]og/
 [Ll]ogs/
 .vs/

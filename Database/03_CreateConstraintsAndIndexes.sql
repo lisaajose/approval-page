@@ -4,8 +4,9 @@
 --              check constraints, and indexes for data integrity and performance.
 -- ==============================================================================
 
-USE [ApprovalWorkflowDB];
-GO
+-- NOTE: In Azure SQL Database, the USE statement is not supported. Connect directly to [ApprovalWorkflowDB].
+-- USE [ApprovalWorkflowDB];
+-- GO
 
 -- 1. Primary Keys
 IF NOT EXISTS (SELECT * FROM sys.key_constraints WHERE name = 'PK_M_Users')
