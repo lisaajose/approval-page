@@ -8,8 +8,9 @@
 --              vouchers, rollback integrity, and retrieval procedures.
 -- ==============================================================================
 
-USE [ApprovalWorkflowDB];
-GO
+-- NOTE: In Azure SQL Database, the USE statement is not supported. Connect directly to [ApprovalWorkflowDB].
+-- USE [ApprovalWorkflowDB];
+-- GO
 
 SET NOCOUNT ON;
 

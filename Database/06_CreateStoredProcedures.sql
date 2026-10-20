@@ -11,8 +11,9 @@
 --              7. dbo.usp_GetAllUsers
 -- ==============================================================================
 
-USE [ApprovalWorkflowDB];
-GO
+-- NOTE: In Azure SQL Database, the USE statement is not supported. Connect directly to [ApprovalWorkflowDB].
+-- USE [ApprovalWorkflowDB];
+-- GO
 
 -- ==============================================================================
 -- 1. Procedure: dbo.usp_SaveVoucher
@@ -664,8 +665,9 @@ GO
 --              as well as user authentication verification.
 -- ==============================================================================
 
-USE [ApprovalWorkflowDB];
-GO
+-- NOTE: In Azure SQL Database, the USE statement is not supported. Connect directly to [ApprovalWorkflowDB].
+-- USE [ApprovalWorkflowDB];
+-- GO
 
 -- ==============================================================================
 -- Procedure: dbo.usp_ApprovalWorkflow

@@ -4,8 +4,9 @@
 --              and the supporting audit table (t_ApprovalHistory).
 -- ==============================================================================
 
-USE [ApprovalWorkflowDB];
-GO
+-- NOTE: In Azure SQL Database, the USE statement is not supported. Connect directly to [ApprovalWorkflowDB].
+-- USE [ApprovalWorkflowDB];
+-- GO
 
 -- 1. Table: M_Users (Original table with exact names and preserved columns)
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'M_Users')

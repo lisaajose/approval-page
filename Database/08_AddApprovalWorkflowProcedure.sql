@@ -5,8 +5,9 @@
 --              as well as user authentication verification.
 -- ==============================================================================
 
-USE [ApprovalWorkflowDB];
-GO
+-- NOTE: In Azure SQL Database, the USE statement is not supported. Connect directly to [ApprovalWorkflowDB].
+-- USE [ApprovalWorkflowDB];
+-- GO
 
 -- ==============================================================================
 -- Procedure: dbo.usp_ApprovalWorkflow

@@ -5,8 +5,9 @@
 --              single authoritative database rule.
 -- ==============================================================================
 
-USE [ApprovalWorkflowDB];
-GO
+-- NOTE: In Azure SQL Database, the USE statement is not supported. Connect directly to [ApprovalWorkflowDB].
+-- USE [ApprovalWorkflowDB];
+-- GO
 
 -- 1. Scalar Function: fn_GetVoucherApprovalLevel
 -- Evaluates the financial amount and returns the applicable workflow level.

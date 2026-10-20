@@ -1,0 +1,17 @@
+**/.git
+**/.github
+**/.vs
+**/.vscode
+**/.idea
+**/bin
+**/obj
+**/publish
+**/publish_test
+**/TestResults
+**/*.user
+**/*.suo
+**/*.userosscache
+**/*.log
+.dockerignore
+Dockerfile*
+README.md
