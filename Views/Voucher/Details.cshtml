@@ -30,6 +30,9 @@
     </p>
   </div>
   <div class="d-flex gap-2">
+    <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#modalAuthInfo">
+      <i class="bx bx-info-circle me-1"></i> Auth Info
+    </button>
     <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
       <i class="bx bx-arrow-back me-1"></i> All Vouchers
     </a>
@@ -89,61 +92,6 @@
         <p class="mb-0 bg-lighter p-2 rounded text-secondary border">
           @(string.IsNullOrWhiteSpace(Model.Header.Narration) ? "No narration provided." : Model.Header.Narration)
         </p>
-      </div>
-    </div>
-
-    <!-- ACTION BUTTONS BAR: Save, Approve, Reject, Auth Info -->
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
-      <div class="d-flex align-items-center gap-2">
-        <span class="text-muted small fw-semibold me-2">Actions:</span>
-
-        <!-- Save Button -->
-        <a asp-action="Create" class="btn btn-outline-primary btn-sm">
-          <i class="bx bx-save me-1"></i> Save New
-        </a>
-
-        <!-- Approve Button -->
-        @if (Model.CanCurrentUserAct)
-        {
-          <button type="button" class="btn btn-success btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalApprove">
-            <i class="bx bx-check-circle me-1"></i> Approve
-          </button>
-        }
-        else
-        {
-          <button type="button" class="btn btn-success btn-sm" disabled title="@(Model.Header.AuthStatus != 0 ? "Voucher is not pending." : $"Awaiting action from {Model.Header.CurrentPendingUsername}.")">
-            <i class="bx bx-check-circle me-1"></i> Approve
-          </button>
-        }
-
-        <!-- Reject Button -->
-        @if (Model.CanCurrentUserAct)
-        {
-          <button type="button" class="btn btn-danger btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#modalReject">
-            <i class="bx bx-x-circle me-1"></i> Reject
-          </button>
-        }
-        else
-        {
-          <button type="button" class="btn btn-danger btn-sm" disabled title="@(Model.Header.AuthStatus != 0 ? "Voucher is not pending." : $"Awaiting action from {Model.Header.CurrentPendingUsername}.")">
-            <i class="bx bx-x-circle me-1"></i> Reject
-          </button>
-        }
-
-        <!-- Auth Info Button -->
-        <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#modalAuthInfo">
-          <i class="bx bx-info-circle me-1"></i> Auth Info
-        </button>
-      </div>
-
-      <div>
-        @if (Model.Header.AuthStatus == 0)
-        {
-          <span class="badge bg-label-primary px-3 py-2">
-            <i class="bx bx-loader-circle bx-spin me-1"></i>
-            Current Stage: <strong>@(Model.Header.CurrentPendingUsername ?? "Pending Stage")</strong>
-          </span>
-        }
       </div>
     </div>
   </div>
