@@ -33,11 +33,9 @@ namespace ApprovalWorkflow.Controllers
                 return RedirectToAction("Index", "Voucher");
             }
 
-            var allUsers = await _approvalService.GetAllUsersAsync();
             var model = new LoginViewModel
             {
-                ReturnUrl = returnUrl,
-                AvailableUsers = allUsers.Where(u => u.Bactive == true).ToList()
+                ReturnUrl = returnUrl
             };
 
             return View(model);
@@ -47,9 +45,6 @@ namespace ApprovalWorkflow.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
-            var allUsers = await _approvalService.GetAllUsersAsync();
-            model.AvailableUsers = allUsers.Where(u => u.Bactive == true).ToList();
-
             if (string.IsNullOrWhiteSpace(model.UsernameOrEmail) || string.IsNullOrWhiteSpace(model.Password))
             {
                 ModelState.AddModelError(string.Empty, "Please enter both username/email and password.");
@@ -64,33 +59,11 @@ namespace ApprovalWorkflow.Controllers
             }
 
             _userContextService.SetCurrentUser(result.User.UserId);
-            TempData["SuccessMessage"] = $"Welcome back, {result.User.Username}! You are logged in as {result.User.RoleDescription}.";
+            TempData["SuccessMessage"] = $"Welcome back, {result.User.Username}!";
 
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
             {
                 return Redirect(model.ReturnUrl);
-            }
-
-            return RedirectToAction("Index", "Voucher");
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> QuickLogin(int userId, string? returnUrl = null)
-        {
-            var user = await _approvalService.GetUserByIdAsync(userId);
-            if (user == null || user.Bactive != true)
-            {
-                TempData["ErrorMessage"] = "The selected user account is not active or does not exist.";
-                return RedirectToAction(nameof(Login));
-            }
-
-            _userContextService.SetCurrentUser(user.UserId);
-            TempData["SuccessMessage"] = $"Successfully switched actor to {user.Username} ({user.RoleDescription}).";
-
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-            {
-                return Redirect(returnUrl);
             }
 
             return RedirectToAction("Index", "Voucher");

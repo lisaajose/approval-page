@@ -101,20 +101,5 @@ namespace ApprovalWorkflow.Controllers
             var notifications = await _approvalService.GetNotificationsAsync(currentUser.UserId);
             return View(notifications);
         }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult SwitchUser(int userId, string? returnUrl)
-        {
-            _userContextService.SetCurrentUser(userId);
-            TempData["SuccessMessage"] = $"Active user switched successfully.";
-
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-            {
-                return Redirect(returnUrl);
-            }
-
-            return RedirectToAction("Index", "Voucher");
-        }
     }
 }

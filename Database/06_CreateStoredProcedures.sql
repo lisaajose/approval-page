@@ -789,9 +789,8 @@ BEGIN
         RETURN;
     END
 
-    -- For development, accept either standard test password 'Password123!', 'password',
-    -- or the exact stored password/hash value
-    IF @Password = N'Password123!' OR @Password = N'password' OR @Password = @FoundPassword OR @FoundPassword = N'DevPlaceholderHash_Password123!'
+    -- Password must match the user's UserId
+    IF LTRIM(RTRIM(@Password)) = CAST(@FoundUserId AS NVARCHAR(20)) OR LTRIM(RTRIM(@Password)) = @FoundPassword
     BEGIN
         SET @Success = 1;
         SET @UserId = @FoundUserId;

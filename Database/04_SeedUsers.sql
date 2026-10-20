@@ -48,7 +48,7 @@ BEGIN
     SELECT
         s.UserId,
         s.Username,
-        @DefaultPasswordHash,
+        CAST(s.UserId AS NVARCHAR(20)),
         LOWER(s.Username) + N'@approvalworkflow.local', -- Clearly marked local dev placeholder email
         GETDATE(),
         NULL,
@@ -70,7 +70,8 @@ UPDATE u
 SET
     u.Username = s.Username,
     u.Bactive = s.Bactive,
-    u.UserRole = s.UserRole
+    u.UserRole = s.UserRole,
+    u.Password = CAST(s.UserId AS NVARCHAR(20))
 FROM M_Users u
 INNER JOIN #SourceUsers s ON u.UserId = s.UserId;
 

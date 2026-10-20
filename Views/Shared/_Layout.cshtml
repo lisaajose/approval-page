@@ -3,7 +3,6 @@
 
 @{
     var activeUser = await UserContextService.GetCurrentUserAsync();
-    var allUsers = await ApprovalService.GetAllUsersAsync();
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
 }
@@ -190,27 +189,6 @@
                           </div>
                         </div>
                       </li>
-                      <li><div class="dropdown-divider"></div></li>
-                      <li class="dropdown-header text-uppercase small text-muted">Switch Actor</li>
-                      @foreach (var user in allUsers.Where(u => u.Bactive == true).Take(6))
-                      {
-                        <li>
-                          <form asp-controller="Approval" asp-action="SwitchUser" method="post" class="m-0">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="userId" value="@user.UserId" />
-                            <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-                            <button type="submit" class="dropdown-item d-flex align-items-center justify-content-between @(user.UserId == activeUser.UserId ? "active" : "")">
-                              <span>
-                                <i class="bx bx-user me-2"></i>@user.Username
-                              </span>
-                              @if (user.UserId == activeUser.UserId)
-                              {
-                                <i class="bx bx-check text-primary"></i>
-                              }
-                            </button>
-                          </form>
-                        </li>
-                      }
                       <li><div class="dropdown-divider"></div></li>
                       <li>
                         <a class="dropdown-item text-danger" asp-controller="Auth" asp-action="Logout">
