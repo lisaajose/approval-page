@@ -18,7 +18,7 @@
         _ => "bx-help-circle"
     };
 
-    // Determine active user's approval level or role in the workflow hierarchy
+    // Determine active user's approval level in hierarchy
     int currentUserLevel = activeUser.UserId switch
     {
         1 => 4,    // JP - Level 4 (Top Level)
@@ -28,7 +28,6 @@
         _ => activeUser.UserRole == 1 ? 4 : 0
     };
 
-    // Calculate lower-level participants/recipients:
     var allApproversHierarchy = new List<(int UserId, string Name, int Level, string RoleDesc)>
     {
         (13, "LISA", 1, "Level 1 Approver"),
@@ -71,12 +70,6 @@
       <a asp-action="Edit" asp-route-id="@Model.Header.HeaderId" class="btn btn-warning btn-sm shadow-sm">
         <i class="bx bx-edit me-1"></i> Edit &amp; Resubmit
       </a>
-    }
-    @if (eligibleRecipients.Any())
-    {
-      <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalSendNotification">
-        <i class="bx bx-bell me-1"></i> Send Notification
-      </button>
     }
     <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#modalAuthInfo">
       <i class="bx bx-info-circle me-1"></i> Auth Info
@@ -241,13 +234,6 @@
 
               <!-- Action Area -->
               <div class="pt-3 border-top">
-                <div class="alert alert-primary py-2 px-3 small d-flex align-items-center mb-3">
-                  <i class="bx bx-shield-check fs-4 me-2"></i>
-                  <div>
-                    <strong>Authorized Approver:</strong> You are currently logged in as <strong>@activeUser.Username</strong>.
-                  </div>
-                </div>
-
                 <form method="post" id="cellActionForm">
                   @Html.AntiForgeryToken()
                   <input type="hidden" name="HeaderId" value="@Model.Header.HeaderId" />
@@ -464,7 +450,36 @@
           </div>
           <div class="mb-3">
             <label class="form-label fw-semibold">Mandatory Rejection Reason / Comments:</label>
-            <textarea name="Comments" id="rejectReason" class="form-control" rows="3" placeholder="Provide mandatory explanation for rejection" required maxlength="100"></textarea>
+            <textarea name="Comments" id="rejectReason" class="form-control" rows="3" placeholder="Provide mandatory explanation for rejection" required maxlength="250"></textarea>
+          </div>
+
+          <div class="mt-3 pt-3 border-top">
+            <label class="form-label small fw-semibold text-dark">
+              <i class="bx bx-bell text-warning me-1"></i> Send Notification / Comment to Team Member (Optional):
+            </label>
+            @if (eligibleRecipients.Any())
+            {
+              <select name="TargetUserId" class="form-select form-select-sm mb-2" id="rejectTargetUserId">
+                <option value="">-- Do not send additional notification --</option>
+                @foreach (var rec in eligibleRecipients)
+                {
+                  <option value="@rec.UserId">@rec.DisplayName</option>
+                }
+              </select>
+              <div id="rejectNotifyCustomComment" style="display: none;">
+                <label class="form-label small text-muted">Specific Remarks for Recipient (Optional — defaults to rejection reason above):</label>
+                <textarea name="NotificationComment" class="form-control form-control-sm" rows="2" placeholder="Leave blank to use rejection reason above, or type custom remarks..." maxlength="250"></textarea>
+              </div>
+            }
+            else
+            {
+              <select class="form-select form-select-sm mb-1 text-muted bg-light" disabled>
+                <option selected>No lower-level approvers or creator to notify</option>
+              </select>
+              <div class="small text-muted fst-italic" style="font-size: 0.75rem;">
+                No lower-level team members or external creator available for notification.
+              </div>
+            }
           </div>
         </div>
 
@@ -631,55 +646,6 @@
   </div>
 </div>
 
-<!-- MODAL: SEND NOTIFICATION TO LOWER-LEVEL PARTICIPANTS -->
-<div class="modal fade" id="modalSendNotification" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" role="document">
-    <div class="modal-content">
-      <form asp-controller="Voucher" asp-action="SendNotification" method="post">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="HeaderId" value="@Model.Header.HeaderId" />
-
-        <div class="modal-header border-bottom">
-          <h5 class="modal-title fw-bold text-dark">
-            <i class="bx bx-bell text-warning me-1"></i> Send Notification / Comment
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-
-        <div class="modal-body">
-          <p class="small text-muted mb-3">
-            Send an informational notification with remarks regarding Voucher <strong>@Model.Header.VoucherNo</strong> to lower-level approvers or the voucher creator.
-          </p>
-
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Select Recipient:</label>
-            <select name="TargetUserId" class="form-select" required>
-              <option value="">-- Choose recipient --</option>
-              @foreach (var rec in eligibleRecipients)
-              {
-                <option value="@rec.UserId">@rec.DisplayName</option>
-              }
-            </select>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Comments / Remarks:</label>
-            <textarea name="Comment" class="form-control" rows="3" placeholder="Enter remarks or instructions for the recipient..." required maxlength="250"></textarea>
-            <small class="text-muted">This comment will appear in their Notification Inbox and the Voucher Audit Trail.</small>
-          </div>
-        </div>
-
-        <div class="modal-footer border-top">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-warning">
-            <i class="bx bx-send me-1"></i> Send Notification
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
 @section Scripts {
   <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -691,6 +657,14 @@
           if (cellVal && rejectVal && !rejectVal.value) {
             rejectVal.value = cellVal;
           }
+        });
+      }
+
+      const rejectTargetUser = document.getElementById('rejectTargetUserId');
+      const rejectCommentBox = document.getElementById('rejectNotifyCustomComment');
+      if (rejectTargetUser && rejectCommentBox) {
+        rejectTargetUser.addEventListener('change', function () {
+          rejectCommentBox.style.display = this.value ? 'block' : 'none';
         });
       }
     });

@@ -6,17 +6,17 @@
 }
 
 <!-- Page Heading & Breadcrumb -->
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <div>
-    <h4 class="fw-bold py-1 mb-1">
+    <h5 class="fw-bold py-0 mb-1">
       <span class="text-muted fw-light">Workflow /</span> My Pending Approvals
-    </h4>
-    <p class="text-muted mb-0 small">
+    </h5>
+    <small class="text-muted">
       Showing vouchers where <strong>@activeUser.Username</strong> is the authorized actor for the current sequential stage.
-    </p>
+    </small>
   </div>
   <div>
-    <span class="badge bg-label-primary fs-6 px-3 py-2">
+    <span class="badge bg-label-primary px-2 py-1 small">
       <i class="bx bx-time-five me-1"></i> @Model.Count Pending Tasks
     </span>
   </div>
@@ -24,36 +24,33 @@
 
 <!-- Pending Approvals Card -->
 <div class="card shadow-sm border-0">
-  <div class="card-header border-bottom py-3 d-flex justify-content-between align-items-center">
-    <h5 class="card-title mb-0 fw-bold text-dark">
+  <div class="card-header border-bottom py-2 d-flex justify-content-between align-items-center">
+    <h6 class="card-title mb-0 fw-bold text-dark small text-uppercase" style="letter-spacing: 0.5px;">
       <i class="bx bx-task text-primary me-2"></i>Actionable Approval Tasks
-    </h5>
+    </h6>
   </div>
 
   <div class="table-responsive text-nowrap">
-    <table class="table table-hover align-middle mb-0">
+    <table class="table table-sm table-hover align-middle mb-0">
       <thead class="table-light">
         <tr>
-          <th>Voucher No</th>
-          <th>Date</th>
+          <th style="width: 80px;" class="text-center">Action</th>
+          <th style="width: 140px;">Voucher No</th>
+          <th style="width: 95px;">Date</th>
           <th>Narration</th>
-          <th class="text-end">Amount (₹)</th>
-          <th class="text-center">Workflow Level</th>
-          <th class="text-center">Actionable Stage</th>
+          <th style="width: 110px;" class="text-end">Amount (₹)</th>
+          <th style="width: 80px;" class="text-center">Level</th>
+          <th style="width: 115px;" class="text-center">Stage</th>
           <th>Alert Message</th>
-          <th class="text-center">Action</th>
         </tr>
       </thead>
       <tbody class="table-border-bottom-0">
         @if (!Model.Any())
         {
           <tr>
-            <td colspan="8" class="text-center py-5 text-muted">
-              <i class="bx bx-check-double fs-1 text-success d-block mb-2"></i>
+            <td colspan="8" class="text-center py-4 text-muted">
+              <i class="bx bx-check-double fs-2 text-success d-block mb-1"></i>
               <strong>All caught up!</strong> No pending approval tasks assigned to <strong>@activeUser.Username</strong>.
-              <div class="small mt-1 text-secondary">
-                To test approvals for another user (Lisa, Gautham, Edwin, JP), switch user in the top navigation bar.
-              </div>
             </td>
           </tr>
         }
@@ -62,35 +59,35 @@
           @foreach (var item in Model)
           {
             <tr>
-              <td>
-                <a asp-controller="Voucher" asp-action="Details" asp-route-id="@item.HeaderId" class="fw-bold text-primary">
+              <td class="text-center py-2">
+                <a asp-controller="Voucher" asp-action="Details" asp-route-id="@item.HeaderId" class="btn btn-outline-primary btn-sm py-0 px-2 fw-semibold" title="View & Act on Voucher" style="font-size: 0.75rem;">
+                  <i class="bx bx-show me-1"></i>View
+                </a>
+              </td>
+              <td class="py-2">
+                <a asp-controller="Voucher" asp-action="Details" asp-route-id="@item.HeaderId" class="fw-bold text-primary small">
                   <i class="bx bx-file me-1"></i>@item.VoucherNo
                 </a>
               </td>
-              <td>@item.Date.ToString("yyyy-MM-dd")</td>
-              <td>
-                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="@item.Narration">
+              <td class="py-2 small text-secondary">@item.Date.ToString("yyyy-MM-dd")</td>
+              <td class="py-2 small">
+                <span class="text-truncate d-inline-block text-secondary" style="max-width: 220px;" title="@item.Narration">
                   @(string.IsNullOrWhiteSpace(item.Narration) ? "—" : item.Narration)
                 </span>
               </td>
-              <td class="text-end fw-bold text-dark">
+              <td class="text-end fw-bold text-dark py-2 small">
                 ₹@item.Amount.ToString("N2")
               </td>
-              <td class="text-center">
-                <span class="badge bg-label-info">Level @item.WorkflowLevel</span>
+              <td class="text-center py-2">
+                <span class="badge bg-label-info py-0 px-2" style="font-size: 0.72rem;">Level @item.WorkflowLevel</span>
               </td>
-              <td class="text-center">
-                <span class="badge bg-primary">
+              <td class="text-center py-2">
+                <span class="badge bg-primary py-0 px-2" style="font-size: 0.72rem;">
                   Stage @item.StepOrder (Lvl @item.Level)
                 </span>
               </td>
-              <td>
-                <span class="small text-secondary">@(item.Alerts ?? "Approval Alert")</span>
-              </td>
-              <td class="text-center">
-                <a asp-controller="Voucher" asp-action="Details" asp-route-id="@item.HeaderId" class="btn btn-primary btn-sm px-3 shadow-sm">
-                  <i class="bx bx-check-circle me-1"></i> Review &amp; Act
-                </a>
+              <td class="py-2 small text-secondary">
+                @(item.Alerts ?? "Approval Alert")
               </td>
             </tr>
           }

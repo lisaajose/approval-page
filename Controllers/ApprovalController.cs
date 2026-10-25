@@ -79,6 +79,20 @@ namespace ApprovalWorkflow.Controllers
             if (result.Success)
             {
                 TempData["SuccessMessage"] = result.Message;
+
+                // If user optionally selected a team member or creator to notify on rejection
+                if (model.TargetUserId.HasValue && model.TargetUserId.Value > 0)
+                {
+                    string commentToSend = !string.IsNullOrWhiteSpace(model.NotificationComment)
+                        ? model.NotificationComment
+                        : $"Voucher rejected: {model.Comments}";
+
+                    await _approvalService.SendVoucherNotificationAsync(
+                        model.HeaderId,
+                        currentUser.UserId,
+                        model.TargetUserId.Value,
+                        commentToSend);
+                }
             }
             else
             {
@@ -86,6 +100,18 @@ namespace ApprovalWorkflow.Controllers
             }
 
             return RedirectToAction("Details", "Voucher", new { id = model.HeaderId });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> OpenNotification(int authId, int headerId)
+        {
+            var currentUser = await _userContextService.GetCurrentUserAsync();
+            if (currentUser != null && authId > 0)
+            {
+                await _approvalService.MarkNotificationsStatusAsync(currentUser.UserId, new[] { authId }, true);
+            }
+
+            return RedirectToAction("Details", "Voucher", new { id = headerId });
         }
 
         [HttpGet]

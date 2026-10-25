@@ -97,8 +97,13 @@ namespace ApprovalWorkflow.Models
         [Required]
         public int HeaderId { get; set; }
 
-        [StringLength(100, ErrorMessage = "Comments cannot exceed 100 characters.")]
+        [StringLength(250, ErrorMessage = "Comments cannot exceed 250 characters.")]
         public string? Comments { get; set; }
+
+        public int? TargetUserId { get; set; }
+
+        [StringLength(250, ErrorMessage = "Notification comments cannot exceed 250 characters.")]
+        public string? NotificationComment { get; set; }
     }
 
     public class OperationResult
