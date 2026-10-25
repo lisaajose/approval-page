@@ -6,10 +6,14 @@
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
     int unreadNotifCount = 0;
+    int pendingTasksCount = 0;
     if (activeUser != null)
     {
         var counts = await ApprovalService.GetNotificationCountsAsync(activeUser.UserId);
         unreadNotifCount = counts.UnreadCount;
+
+        var pendingTasks = await ApprovalService.GetPendingApprovalsAsync(activeUser.UserId);
+        pendingTasksCount = pendingTasks.Count;
     }
 }
 
@@ -128,9 +132,15 @@
             </li>
 
             <li class="menu-item @(currentController == "Approval" && currentAction == "Pending" ? "active" : "")">
-              <a asp-controller="Approval" asp-action="Pending" class="menu-link">
+              <a asp-controller="Approval" asp-action="Pending" class="menu-link d-flex align-items-center">
                 <i class="menu-icon tf-icons bx bx-time-five"></i>
                 <div data-i18n="Pending Approvals">My Pending Queue</div>
+                @if (pendingTasksCount > 0)
+                {
+                  <span class="badge rounded-pill bg-primary ms-auto px-2 py-1" style="font-size: 0.72rem;">
+                    @pendingTasksCount
+                  </span>
+                }
               </a>
             </li>
 

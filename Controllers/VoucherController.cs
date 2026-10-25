@@ -196,7 +196,27 @@ namespace ApprovalWorkflow.Controllers
             var currentUser = await _userContextService.GetCurrentUserAsync();
             if (currentUser == null)
             {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return Json(new { success = false, message = "User not logged in." });
+                }
                 return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path });
+            }
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                if (model.HeaderId <= 0 || model.TargetUserId <= 0 || string.IsNullOrWhiteSpace(model.Comment))
+                {
+                    return Json(new { success = false, message = "Recipient and message/remarks are required." });
+                }
+
+                var res = await _approvalService.SendVoucherNotificationAsync(
+                    model.HeaderId,
+                    currentUser.UserId,
+                    model.TargetUserId,
+                    model.Comment);
+
+                return Json(new { success = res.Success, message = res.Message });
             }
 
             if (model.HeaderId <= 0 || model.TargetUserId <= 0 || string.IsNullOrWhiteSpace(model.Comment))
