@@ -164,15 +164,15 @@
 </div>
 
 <div class="row g-4">
-  <!-- The Four-Cell Approval Details Panel -->
+  <!-- Approval Workflow Details Section -->
   <div class="col-12">
     <div class="card shadow-sm border-0 mb-4">
       <div class="card-header d-flex justify-content-between align-items-center border-bottom py-3">
         <div>
           <h5 class="card-title mb-0 fw-bold text-dark">
-            <i class="bx bx-list-check text-primary me-2"></i>Approval Details (Four-Cell Panel)
+            <i class="bx bx-list-check text-primary me-2"></i>Approval Details
           </h5>
-          <small class="text-muted">Arranged vertically for JP, LISA, GAUTHAM, and EDWIN</small>
+          <small class="text-muted">Four-cell workflow matrix overview &amp; active approver action</small>
         </div>
         <div class="d-flex align-items-center gap-2">
           <span class="badge bg-label-secondary">
@@ -185,17 +185,19 @@
       </div>
 
       <div class="card-body p-4">
-        <!-- 4 Vertical Cells -->
-        <div class="d-flex flex-column gap-3">
+        <!-- 1. COMPACT FOUR-CELL APPROVAL MATRIX OVERVIEW -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold text-dark mb-0 small text-uppercase" style="letter-spacing: 0.5px;">
+            <i class="bx bx-grid-alt text-primary me-1"></i> Approval Matrix (All Stages)
+          </h6>
+          <span class="text-muted small">Sequential routing (Level 1 &rarr; Level 4)</span>
+        </div>
+
+        <div class="list-group list-group-flush border rounded-3 mb-4 shadow-xs">
           @for (int cellIndex = 1; cellIndex <= 4; cellIndex++)
           {
             var slot = Model.ApprovalSlots.FirstOrDefault(s => s.StepOrder == cellIndex);
             
-            // Designated users per matrix:
-            // 1: Lisa (UserId 13)
-            // 2: Gautham (UserId 1012)
-            // 3: Edwin (UserId 5)
-            // 4: JP (UserId 1)
             string cellUserName = cellIndex switch {
                 1 => "LISA",
                 2 => "GAUTHAM",
@@ -217,143 +219,241 @@
             bool isRejected = slot?.Status == 2;
             bool isWaiting = isRequired && !isApproved && !isRejected && !isActiveStage;
 
-            string cellCardClass = isActiveStage ? "card-stage-active bg-white" :
-                                   isApproved ? "card-stage-done bg-lighter" :
-                                   isRejected ? "card-stage-rejected bg-lighter" :
-                                   isWaiting ? "card-stage-waiting bg-lighter" : "border bg-lighter opacity-75";
+            string rowBg = isActiveStage ? "bg-label-primary border-primary border-2" :
+                           isApproved ? "bg-white" :
+                           isRejected ? "bg-label-danger" :
+                           !isRequired ? "bg-lighter opacity-75" : "bg-white";
 
-            <div class="card @cellCardClass shadow-none">
-              <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="badge @(isActiveStage ? "bg-primary" : isApproved ? "bg-success" : isRejected ? "bg-danger" : "bg-secondary") rounded-pill">
-                      Cell @cellIndex
-                    </span>
-                    <strong class="fs-6 text-dark">
-                      @cellUserName
-                    </strong>
-                  </div>
-
-                  <!-- Task Status Badge -->
+            <div class="list-group-item px-3 py-2 @rowBg">
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <!-- Cell # and Approver & Role -->
+                <div class="d-flex align-items-center gap-2" style="min-width: 260px;">
+                  <span class="badge @(isActiveStage ? "bg-primary" : isApproved ? "bg-success" : isRejected ? "bg-danger" : isRequired ? "bg-secondary" : "bg-label-secondary") rounded-pill px-2 py-1">
+                    Cell @cellIndex
+                  </span>
                   <div>
-                    @if (!isRequired)
-                    {
-                      <span class="badge bg-label-notrequired">
-                        <i class="bx bx-minus-circle me-1"></i> Not Required
-                      </span>
-                    }
-                    else if (isApproved)
-                    {
-                      <span class="badge bg-label-success">
-                        <i class="bx bx-check-circle me-1"></i> Approved
-                      </span>
-                    }
-                    else if (isRejected)
-                    {
-                      <span class="badge bg-label-danger">
-                        <i class="bx bx-x-circle me-1"></i> Rejected
-                      </span>
-                    }
-                    else if (isActiveStage)
-                    {
-                      <span class="badge bg-label-warning">
-                        <i class="bx bx-hourglass bx-spin me-1"></i> Current Pending Stage
-                      </span>
-                    }
-                    else
-                    {
-                      <span class="badge bg-label-secondary">
-                        <i class="bx bx-lock-alt me-1"></i> Waiting
-                      </span>
-                    }
+                    <div class="d-flex align-items-center gap-2">
+                      <strong class="text-dark small">@cellUserName</strong>
+                      <span class="badge bg-label-info py-0 px-2" style="font-size: 0.72rem;">Level @cellIndex</span>
+                    </div>
+                    <div class="text-muted" style="font-size: 0.75rem;">@cellRoleDesc</div>
                   </div>
                 </div>
 
-                <!-- Cell Data Grid -->
-                <div class="row g-2 small mb-2">
-                  <div class="col-sm-4">
-                    <span class="text-muted d-block">Alert Type:</span>
-                    <span class="badge bg-label-info">
-                      @(isRequired ? slot!.AlertTypeDescription : "Approval Alert")
-                    </span>
-                  </div>
-                  <div class="col-sm-4">
-                    <span class="text-muted d-block">Approval Level:</span>
-                    <span class="fw-semibold text-dark">Level @cellIndex</span>
-                  </div>
-                  <div class="col-sm-4">
-                    <span class="text-muted d-block">Role Mapping:</span>
-                    <span class="text-secondary">@cellRoleDesc</span>
-                  </div>
-                  <div class="col-12 mt-2">
-                    <span class="text-muted d-block">Alert Message:</span>
-                    <div class="bg-white p-2 rounded border mt-1 text-dark fw-medium">
-                      <i class="bx bx-bell text-warning me-1"></i>
-                      @(isRequired ? (slot!.Alerts ?? "Approval Alert") : $"Not required for voucher amount ₹{Model.Header.Amount:N2}")
-                    </div>
-                  </div>
-                  <div class="col-12 mt-1">
-                    <span class="text-muted d-block">User Comments:</span>
-                    <span class="fst-italic text-secondary">
-                      @(isRequired && !string.IsNullOrWhiteSpace(slot!.UserComments) ? slot.UserComments : "No comments recorded.")
-                    </span>
-                  </div>
-                  @if (isRequired && slot!.ActionDate.HasValue)
+                <!-- User Comments / Notes -->
+                <div class="flex-grow-1 px-2 text-truncate" style="min-width: 200px; max-width: 480px;">
+                  @if (isRequired && !string.IsNullOrWhiteSpace(slot!.UserComments))
                   {
-                    <div class="col-12 text-end text-muted small mt-1">
-                      <i class="bx bx-calendar-check me-1"></i> Actioned by <strong>@slot.ActionedByUsername</strong> on @slot.ActionDate.Value.ToString("yyyy-MM-dd HH:mm:ss")
-                    </div>
+                    <span class="small text-secondary" title="@slot.UserComments">
+                      <i class="bx bx-message-rounded-dots text-primary me-1"></i>
+                      <strong>Comment:</strong> "@slot.UserComments"
+                    </span>
+                  }
+                  else if (isRequired && slot!.ActionDate.HasValue)
+                  {
+                    <span class="small text-muted" style="font-size: 0.75rem;">
+                      <i class="bx bx-check text-success me-1"></i>Actioned by <strong>@slot.ActionedByUsername</strong> on @slot.ActionDate.Value.ToString("yyyy-MM-dd HH:mm")
+                    </span>
+                  }
+                  else if (isActiveStage)
+                  {
+                    <span class="small text-primary fw-medium" style="font-size: 0.75rem;">
+                      <i class="bx bx-hourglass bx-spin text-warning me-1"></i>Current pending approval stage
+                    </span>
+                  }
+                  else if (!isRequired)
+                  {
+                    <span class="small text-muted fst-italic" style="font-size: 0.75rem;">
+                      Not required for amount ₹@Model.Header.Amount.ToString("N2")
+                    </span>
+                  }
+                  else
+                  {
+                    <span class="small text-muted fst-italic" style="font-size: 0.75rem;">
+                      Waiting for prior level approval
+                    </span>
                   }
                 </div>
 
-                <!-- In-place action if this cell is current active stage -->
-                @if (isActiveStage && Model.Header.AuthStatus == 0)
-                {
-                  <div class="mt-3 pt-3 border-top bg-white p-3 rounded border">
-                    @if (activeUser.UserId == slot!.AssignedUserId)
-                    {
-                      <div class="alert alert-primary py-2 px-3 small d-flex align-items-center mb-3">
-                        <i class="bx bx-shield-check fs-4 me-2"></i>
-                        <div>
-                          <strong>Authorized Approver:</strong> You are currently logged in as <strong>@activeUser.Username</strong>.
-                        </div>
-                      </div>
-
-                      <form method="post" id="cellActionForm">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="HeaderId" value="@Model.Header.HeaderId" />
-
-                        <div class="mb-3">
-                          <label class="form-label small fw-semibold">Remarks / Decision Comments:</label>
-                          <input type="text" name="Comments" id="cellCommentsInput" class="form-control form-control-sm" placeholder="Enter decision remarks (required for rejection)" maxlength="100" />
-                        </div>
-
-                        <div class="d-flex gap-2">
-                          <button type="submit" asp-controller="Approval" asp-action="Approve" class="btn btn-success btn-sm px-3 shadow-sm">
-                            <i class="bx bx-check-circle me-1"></i> Approve Stage @slot.StepOrder
-                          </button>
-                          <button type="button" class="btn btn-danger btn-sm px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalReject">
-                            <i class="bx bx-x-circle me-1"></i> Reject Voucher
-                          </button>
-                          <button type="button" class="btn btn-info btn-sm px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAuthInfo">
-                            <i class="bx bx-info-circle me-1"></i> Auth Info
-                          </button>
-                        </div>
-                      </form>
-                    }
-                    else
-                    {
-                      <div class="small text-muted">
-                        <i class="bx bx-lock-alt text-warning me-1"></i>
-                        Awaiting action from <strong>@slot!.AssignedUsername</strong>.
-                      </div>
-                    }
-                  </div>
-                }
+                <!-- Status Badge -->
+                <div>
+                  @if (!isRequired)
+                  {
+                    <span class="badge bg-label-notrequired py-1 px-2">
+                      <i class="bx bx-minus-circle me-1"></i> Not Required
+                    </span>
+                  }
+                  else if (isApproved)
+                  {
+                    <span class="badge bg-label-success py-1 px-2">
+                      <i class="bx bx-check-circle me-1"></i> Approved
+                    </span>
+                  }
+                  else if (isRejected)
+                  {
+                    <span class="badge bg-label-danger py-1 px-2">
+                      <i class="bx bx-x-circle me-1"></i> Rejected
+                    </span>
+                  }
+                  else if (isActiveStage)
+                  {
+                    <span class="badge bg-label-warning py-1 px-2">
+                      <i class="bx bx-hourglass bx-spin me-1"></i> Current Pending Stage
+                    </span>
+                  }
+                  else
+                  {
+                    <span class="badge bg-label-secondary py-1 px-2">
+                      <i class="bx bx-lock-alt me-1"></i> Waiting
+                    </span>
+                  }
+                </div>
               </div>
             </div>
           }
         </div>
+
+        <!-- 2. CURRENT APPROVER ACTION CELL (LARGE) -->
+        @{
+          var activeSlot = Model.ApprovalSlots.FirstOrDefault(s => s.IsCurrentActiveStage);
+        }
+
+        @if (activeSlot != null && Model.Header.AuthStatus == 0)
+        {
+          string activeRoleDesc = activeSlot.StepOrder switch {
+              1 => "Level 1 Approver (₹50.01 - ₹100.00)",
+              2 => "Level 2 Approver (₹100.01 - ₹500.00)",
+              3 => "Level 3 Approver (₹500.01 - ₹1,000.00)",
+              4 => "Level 4 Approver (> ₹1,000.00)",
+              _ => ""
+          };
+          bool isAuthorizedApprover = activeUser.UserId == activeSlot.AssignedUserId;
+
+          <div class="card card-stage-active shadow-sm border-0">
+            <div class="card-header bg-label-primary py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary fs-6 px-3 py-1 rounded-pill">Cell @activeSlot.StepOrder</span>
+                <h6 class="mb-0 fw-bold text-dark">
+                  Current Approver: @activeSlot.AssignedUsername
+                </h6>
+                <span class="badge bg-label-secondary ms-1">Level @activeSlot.StepOrder Approver</span>
+              </div>
+              <span class="badge bg-label-warning fs-6 px-3 py-1">
+                <i class="bx bx-hourglass bx-spin me-1"></i> Action Required
+              </span>
+            </div>
+
+            <div class="card-body p-4">
+              <!-- Grid details -->
+              <div class="row g-3 small mb-3">
+                <div class="col-sm-4">
+                  <span class="text-muted d-block mb-1">Alert Type:</span>
+                  <span class="badge bg-label-info">@activeSlot.AlertTypeDescription</span>
+                </div>
+                <div class="col-sm-4">
+                  <span class="text-muted d-block mb-1">Approval Level:</span>
+                  <span class="fw-semibold text-dark">Level @activeSlot.StepOrder</span>
+                </div>
+                <div class="col-sm-4">
+                  <span class="text-muted d-block mb-1">Role Mapping:</span>
+                  <span class="text-secondary">@activeRoleDesc</span>
+                </div>
+                <div class="col-12 mt-2">
+                  <span class="text-muted d-block mb-1">Alert Message:</span>
+                  <div class="bg-lighter p-2 rounded border text-dark fw-medium">
+                    <i class="bx bx-bell text-warning me-1"></i>
+                    @(activeSlot.Alerts ?? $"Notification: Voucher {Model.Header.VoucherNo} requires Level {activeSlot.StepOrder} approval.")
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Area -->
+              @if (isAuthorizedApprover)
+              {
+                <div class="pt-3 border-top">
+                  <div class="alert alert-primary py-2 px-3 small d-flex align-items-center mb-3">
+                    <i class="bx bx-shield-check fs-4 me-2"></i>
+                    <div>
+                      <strong>Authorized Approver:</strong> You are currently logged in as <strong>@activeUser.Username</strong>.
+                    </div>
+                  </div>
+
+                  <form method="post" id="cellActionForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="HeaderId" value="@Model.Header.HeaderId" />
+
+                    <div class="mb-3">
+                      <label class="form-label small fw-semibold">Remarks / Decision Comments:</label>
+                      <input type="text" name="Comments" id="cellCommentsInput" class="form-control" placeholder="Enter decision remarks (required for rejection)" maxlength="250" />
+                    </div>
+
+                    <div class="d-flex gap-2 flex-wrap">
+                      <button type="submit" asp-controller="Approval" asp-action="Approve" class="btn btn-success px-4 shadow-sm fw-semibold">
+                        <i class="bx bx-check-circle me-1"></i> Approve Stage @activeSlot.StepOrder
+                      </button>
+                      <button type="button" class="btn btn-danger px-4 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalReject">
+                        <i class="bx bx-x-circle me-1"></i> Reject Voucher
+                      </button>
+                      <button type="button" class="btn btn-info px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAuthInfo">
+                        <i class="bx bx-info-circle me-1"></i> Auth Info
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              }
+              else
+              {
+                <div class="pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div class="small text-muted">
+                    <i class="bx bx-lock-alt text-warning me-1"></i>
+                    Awaiting action from <strong>@activeSlot.AssignedUsername</strong>.
+                  </div>
+                  <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#modalAuthInfo">
+                    <i class="bx bx-info-circle me-1"></i> Auth Info
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        }
+        else if (Model.Header.AuthStatus == 1)
+        {
+          <div class="alert alert-success border-0 shadow-sm d-flex justify-content-between align-items-center p-3 mb-0">
+            <div class="d-flex align-items-center">
+              <i class="bx bx-check-double fs-3 me-2 text-success"></i>
+              <div>
+                <strong class="text-success">Workflow Completed</strong>
+                <div class="text-muted small">This voucher has been fully approved through all required stages and posted to accounts.</div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalAuthInfo">
+              <i class="bx bx-info-circle me-1"></i> View Full Audit Trail
+            </button>
+          </div>
+        }
+        else if (Model.Header.AuthStatus == 2)
+        {
+          <div class="alert alert-danger border-0 shadow-sm d-flex justify-content-between align-items-center p-3 mb-0">
+            <div class="d-flex align-items-center">
+              <i class="bx bx-x-circle fs-3 me-2 text-danger"></i>
+              <div>
+                <strong class="text-danger">Workflow Terminated (Rejected)</strong>
+                <div class="text-muted small">This voucher was rejected during approval. See comments in the matrix above or full history in Auth Info.</div>
+              </div>
+            </div>
+            <div class="d-flex gap-2">
+              @if (Model.CanCurrentUserEdit)
+              {
+                <a asp-action="Edit" asp-route-id="@Model.Header.HeaderId" class="btn btn-warning btn-sm shadow-sm">
+                  <i class="bx bx-edit me-1"></i> Edit &amp; Resubmit
+                </a>
+              }
+              <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalAuthInfo">
+                <i class="bx bx-info-circle me-1"></i> View Full Audit Trail
+              </button>
+            </div>
+          </div>
+        }
       </div>
     </div>
   </div>
@@ -632,3 +732,20 @@
     </div>
   </div>
 </div>
+
+@section Scripts {
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const rejectModal = document.getElementById('modalReject');
+      if (rejectModal) {
+        rejectModal.addEventListener('show.bs.modal', function () {
+          const cellVal = document.getElementById('cellCommentsInput')?.value;
+          const rejectVal = document.getElementById('rejectReason');
+          if (cellVal && rejectVal && !rejectVal.value) {
+            rejectVal.value = cellVal;
+          }
+        });
+      }
+    });
+  </script>
+}

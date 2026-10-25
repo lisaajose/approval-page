@@ -1,11 +1,11 @@
 # ==============================================================================
 # Multi-Stage Dockerfile for ASP.NET Core MVC Approval Workflow
-# Target Framework: .NET 10.0
+# Target Framework: .NET 8.0 LTS
 # Compatible with Render, Azure SQL, and Linux Container Environments
 # ==============================================================================
 
 # Stage 1: Build & Restore
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy project definition and restore dependencies (optimizes Docker layer caching)
@@ -23,10 +23,10 @@ FROM build AS publish
 RUN dotnet publish "ApprovalWorkflow.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # Stage 3: Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 
-# Non-root security (default non-root app user in .NET 8+)
+# Non-root security (default non-root app user in .NET 8)
 USER $APP_UID
 
 # Copy published binaries and static assets
