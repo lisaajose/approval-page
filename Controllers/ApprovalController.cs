@@ -89,7 +89,7 @@ namespace ApprovalWorkflow.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Notifications()
+        public async Task<IActionResult> Notifications(string filter = "ALL")
         {
             var currentUser = await _userContextService.GetCurrentUserAsync();
             if (currentUser == null)
@@ -98,8 +98,86 @@ namespace ApprovalWorkflow.Controllers
             }
             ViewBag.CurrentUser = currentUser;
 
-            var notifications = await _approvalService.GetNotificationsAsync(currentUser.UserId);
-            return View(notifications);
+            string normalizedFilter = string.IsNullOrWhiteSpace(filter) ? "ALL" : filter.Trim().ToUpperInvariant();
+            var counts = await _approvalService.GetNotificationCountsAsync(currentUser.UserId);
+            var items = await _approvalService.GetNotificationsAsync(currentUser.UserId, normalizedFilter);
+
+            var viewModel = new NotificationsPageViewModel
+            {
+                Notifications = items,
+                CurrentFilter = normalizedFilter,
+                TotalCount = counts.TotalCount,
+                UnreadCount = counts.UnreadCount,
+                ReadCount = counts.ReadCount
+            };
+
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkNotifications(MarkNotificationInputModel model)
+        {
+            var currentUser = await _userContextService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path });
+            }
+
+            OperationResult result;
+            string action = (model.ActionType ?? "READ").Trim().ToUpperInvariant();
+
+            if (action == "READ_ALL")
+            {
+                result = await _approvalService.MarkAllNotificationsStatusAsync(currentUser.UserId, true);
+            }
+            else if (action == "UNREAD_ALL")
+            {
+                result = await _approvalService.MarkAllNotificationsStatusAsync(currentUser.UserId, false);
+            }
+            else if (action == "UNREAD")
+            {
+                result = await _approvalService.MarkNotificationsStatusAsync(currentUser.UserId, model.AuthIds, false);
+            }
+            else
+            {
+                // Default READ
+                result = await _approvalService.MarkNotificationsStatusAsync(currentUser.UserId, model.AuthIds, true);
+            }
+
+            if (result.Success)
+            {
+                TempData["SuccessMessage"] = result.Message;
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.Message;
+            }
+
+            return RedirectToAction(nameof(Notifications), new { filter = model.CurrentFilter });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleSingleNotification(int authId, bool makeRead, string filter = "ALL")
+        {
+            var currentUser = await _userContextService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path });
+            }
+
+            var result = await _approvalService.MarkNotificationsStatusAsync(currentUser.UserId, new[] { authId }, makeRead);
+            if (result.Success)
+            {
+                TempData["SuccessMessage"] = result.Message;
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.Message;
+            }
+
+            return RedirectToAction(nameof(Notifications), new { filter });
         }
     }
 }

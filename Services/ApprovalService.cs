@@ -140,7 +140,7 @@ namespace ApprovalWorkflow.Services
             }
         }
 
-        public async Task<List<NotificationItem>> GetNotificationsAsync(int userId)
+        public async Task<List<NotificationItem>> GetNotificationsAsync(int userId, string filter = "ALL")
         {
             var items = new List<NotificationItem>();
 
@@ -152,10 +152,14 @@ namespace ApprovalWorkflow.Services
                 CommandType = CommandType.StoredProcedure
             };
             command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+            command.Parameters.Add("@Filter", SqlDbType.NVarChar, 20).Value = string.IsNullOrWhiteSpace(filter) ? "ALL" : filter.Trim().ToUpperInvariant();
 
             using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
+                var actionDateOrdinal = reader.GetOrdinal("dActionDate");
+                var actionedByUsernameOrdinal = reader.GetOrdinal("ActionedByUsername");
+
                 items.Add(new NotificationItem
                 {
                     AuthId = reader.GetInt32(reader.GetOrdinal("iAuthId")),
@@ -170,11 +174,135 @@ namespace ApprovalWorkflow.Services
                     UserComments = reader.IsDBNull(reader.GetOrdinal("sUsercomments")) ? null : reader.GetString(reader.GetOrdinal("sUsercomments")),
                     Status = reader.GetInt32(reader.GetOrdinal("iStatus")),
                     CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
-                    CreatedByUsername = reader.IsDBNull(reader.GetOrdinal("CreatedByUsername")) ? null : reader.GetString(reader.GetOrdinal("CreatedByUsername"))
+                    CreatedByUsername = reader.IsDBNull(reader.GetOrdinal("CreatedByUsername")) ? null : reader.GetString(reader.GetOrdinal("CreatedByUsername")),
+                    ActionDate = reader.IsDBNull(actionDateOrdinal) ? null : reader.GetDateTime(actionDateOrdinal),
+                    ActionedByUsername = reader.IsDBNull(actionedByUsernameOrdinal) ? null : reader.GetString(actionedByUsernameOrdinal),
+                    RecipientUserId = userId
                 });
             }
 
             return items;
+        }
+
+        public async Task<(int TotalCount, int UnreadCount, int ReadCount)> GetNotificationCountsAsync(int userId)
+        {
+            var all = await GetNotificationsAsync(userId, "ALL");
+            int total = all.Count;
+            int unread = all.Count(n => !n.IsRead);
+            int read = all.Count(n => n.IsRead);
+            return (total, unread, read);
+        }
+
+        public async Task<OperationResult> MarkNotificationsStatusAsync(int userId, IEnumerable<int> authIds, bool isRead)
+        {
+            try
+            {
+                var idList = authIds?.Distinct().ToList() ?? new List<int>();
+                if (!idList.Any())
+                {
+                    return OperationResult.Ok("No notifications selected.");
+                }
+
+                string idString = string.Join(",", idList);
+                int newStatus = isRead ? 3 : 0; // 3 = Read, 0 = Unread
+
+                using var connection = _connectionFactory.CreateConnection();
+                await connection.OpenAsync();
+
+                using var command = new SqlCommand("dbo.usp_UpdateNotificationStatus", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+                command.Parameters.Add("@AuthIds", SqlDbType.NVarChar, -1).Value = idString;
+                command.Parameters.Add("@NewStatus", SqlDbType.Int).Value = newStatus;
+                var pCount = command.Parameters.Add("@UpdatedCount", SqlDbType.Int);
+                pCount.Direction = ParameterDirection.Output;
+
+                await command.ExecuteNonQueryAsync();
+
+                int updated = pCount.Value != DBNull.Value ? (int)pCount.Value : idList.Count;
+                string label = isRead ? "read" : "unread";
+                return OperationResult.Ok($"Marked {updated} notification(s) as {label}.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking notifications status for user {UserId}", userId);
+                return OperationResult.Fail("Failed to update notification status: " + ex.Message);
+            }
+        }
+
+        public async Task<OperationResult> MarkAllNotificationsStatusAsync(int userId, bool isRead)
+        {
+            try
+            {
+                int newStatus = isRead ? 3 : 0;
+
+                using var connection = _connectionFactory.CreateConnection();
+                await connection.OpenAsync();
+
+                using var command = new SqlCommand("dbo.usp_UpdateNotificationStatus", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+                command.Parameters.Add("@AuthIds", SqlDbType.NVarChar, -1).Value = "ALL";
+                command.Parameters.Add("@NewStatus", SqlDbType.Int).Value = newStatus;
+                var pCount = command.Parameters.Add("@UpdatedCount", SqlDbType.Int);
+                pCount.Direction = ParameterDirection.Output;
+
+                await command.ExecuteNonQueryAsync();
+
+                int updated = pCount.Value != DBNull.Value ? (int)pCount.Value : 0;
+                string label = isRead ? "read" : "unread";
+                return OperationResult.Ok($"Marked all ({updated}) notifications as {label}.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking all notifications status for user {UserId}", userId);
+                return OperationResult.Fail("Failed to update all notifications: " + ex.Message);
+            }
+        }
+
+        public async Task<OperationResult> SendVoucherNotificationAsync(int headerId, int actingUserId, int targetUserId, string comment)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(comment))
+                {
+                    return OperationResult.Fail("Notification comment cannot be empty.");
+                }
+
+                using var connection = _connectionFactory.CreateConnection();
+                await connection.OpenAsync();
+
+                using var command = new SqlCommand("dbo.usp_SendVoucherNotification", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                command.Parameters.Add("@iHeaderId", SqlDbType.Int).Value = headerId;
+                command.Parameters.Add("@ActingUserId", SqlDbType.Int).Value = actingUserId;
+                command.Parameters.Add("@TargetUserId", SqlDbType.Int).Value = targetUserId;
+                command.Parameters.Add("@Comment", SqlDbType.NVarChar, 250).Value = comment.Trim();
+
+                var pMessage = command.Parameters.Add("@ResponseMessage", SqlDbType.NVarChar, 250);
+                pMessage.Direction = ParameterDirection.Output;
+
+                await command.ExecuteNonQueryAsync();
+
+                string msg = pMessage.Value?.ToString() ?? "Notification sent successfully.";
+                return OperationResult.Ok(msg);
+            }
+            catch (SqlException ex)
+            {
+                _logger.LogError(ex, "SQL Error sending voucher notification for HeaderId {HeaderId}", headerId);
+                return OperationResult.Fail(ex.Message, ex.Number);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error sending notification for HeaderId {HeaderId}", headerId);
+                return OperationResult.Fail("Failed to send notification: " + ex.Message);
+            }
         }
 
         public async Task<List<User>> GetAllUsersAsync()

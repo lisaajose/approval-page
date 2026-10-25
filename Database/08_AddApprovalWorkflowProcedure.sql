@@ -15,14 +15,15 @@
 -- ==============================================================================
 CREATE OR ALTER PROCEDURE dbo.usp_ApprovalWorkflow
 (
-    @Action            NVARCHAR(10),             -- 'SAVE', 'APPROVE', 'REJECT'
+    @Action            NVARCHAR(10),             -- 'SAVE', 'APPROVE', 'REJECT', 'NOTIFY'
     @HeaderId          INT = NULL,
     @VoucherNo         NVARCHAR(50) = NULL,
     @VoucherDate       DATE = NULL,
     @Narration         NVARCHAR(100) = NULL,
     @Amount            DECIMAL(18,2) = NULL,
     @UserId            INT,
-    @UserComment       NVARCHAR(100) = NULL,
+    @UserComment       NVARCHAR(250) = NULL,
+    @TargetUserId      INT = NULL,
     @NewHeaderId       INT = NULL OUTPUT,
     @WorkflowLevel     INT = NULL OUTPUT,
     @AuthStatus        INT = NULL OUTPUT,
@@ -79,9 +80,45 @@ BEGIN
 
         SET @NewHeaderId = @HeaderId;
     END
+    ELSE IF @NormalizedAction = N'NOTIFY'
+    BEGIN
+        EXEC dbo.usp_SendVoucherNotification
+            @iHeaderId       = @HeaderId,
+            @ActingUserId    = @UserId,
+            @TargetUserId    = @TargetUserId,
+            @Comment         = @UserComment,
+            @ResponseMessage = @ResponseMessage OUTPUT;
+
+        SELECT 
+            @AuthStatus = iAuthStatus,
+            @WorkflowLevel = dbo.fn_GetVoucherApprovalLevel(Amount)
+        FROM t_Header 
+        WHERE iHeaderId = @HeaderId;
+
+        SET @NewHeaderId = @HeaderId;
+    END
+    ELSE IF @NormalizedAction = N'RESUBMIT' OR @NormalizedAction = N'EDIT'
+    BEGIN
+        EXEC dbo.usp_ResubmitVoucher
+            @iHeaderId       = @HeaderId,
+            @ActingUserId    = @UserId,
+            @dDate           = @VoucherDate,
+            @sNarration      = @Narration,
+            @Amount          = @Amount,
+            @NewWorkflowLevel = @WorkflowLevel OUTPUT,
+            @ResponseMessage = @ResponseMessage OUTPUT;
+
+        SELECT 
+            @AuthStatus = iAuthStatus,
+            @WorkflowLevel = dbo.fn_GetVoucherApprovalLevel(Amount)
+        FROM t_Header 
+        WHERE iHeaderId = @HeaderId;
+
+        SET @NewHeaderId = @HeaderId;
+    END
     ELSE
     BEGIN
-        THROW 50099, N'Invalid workflow action specified. Supported actions are SAVE, APPROVE, REJECT.', 1;
+        THROW 50099, N'Invalid workflow action specified. Supported actions are SAVE, APPROVE, REJECT, NOTIFY, RESUBMIT.', 1;
     END
 END;
 GO

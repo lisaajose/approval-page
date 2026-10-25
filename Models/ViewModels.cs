@@ -46,11 +46,14 @@ namespace ApprovalWorkflow.Models
     {
         public Voucher Header { get; set; } = new Voucher();
         public List<ApprovalSlot> ApprovalSlots { get; set; } = new List<ApprovalSlot>();
+        public List<ApprovalSlot> AllCycleSlots { get; set; } = new List<ApprovalSlot>();
         public List<NotificationItem> Notifications { get; set; } = new List<NotificationItem>();
         public List<ApprovalHistoryItem> History { get; set; } = new List<ApprovalHistoryItem>();
 
         public int CurrentUserId { get; set; }
         public string CurrentUsername { get; set; } = string.Empty;
+        public int CurrentUserRole { get; set; }
+        public int CurrentCycle { get; set; } = 1;
 
         public bool CanCurrentUserAct =>
             Header.AuthStatus == 0 &&
@@ -58,6 +61,35 @@ namespace ApprovalWorkflow.Models
 
         public ApprovalSlot? ActiveSlotForCurrentUser =>
             ApprovalSlots.FirstOrDefault(s => s.IsCurrentActiveStage && s.AssignedUserId == CurrentUserId);
+
+        public bool CanCurrentUserEdit =>
+            Header.AuthStatus == 2 &&
+            (Header.CreatedBy == CurrentUserId || CurrentUserRole == 1);
+    }
+
+    public class EditVoucherViewModel
+    {
+        [Required]
+        public int HeaderId { get; set; }
+
+        public string VoucherNo { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Voucher date is required.")]
+        [DataType(DataType.Date)]
+        [Display(Name = "Voucher Date")]
+        public DateTime Date { get; set; } = DateTime.Today;
+
+        [StringLength(100, ErrorMessage = "Narration cannot exceed 100 characters.")]
+        [Display(Name = "Narration / Description")]
+        public string? Narration { get; set; }
+
+        [Required(ErrorMessage = "Amount is required.")]
+        [Range(0.00, 999999999.99, ErrorMessage = "Amount must be a non-negative number.")]
+        [Display(Name = "Amount (₹)")]
+        public decimal Amount { get; set; }
+
+        public int PreviousWorkflowLevel { get; set; }
+        public string? LastRejectionReason { get; set; }
     }
 
     public class ApprovalActionInputModel

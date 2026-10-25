@@ -128,7 +128,7 @@
               </a>
             </li>
 
-            @if (activeUser?.UserId == 1)
+            @if (activeUser != null)
             {
               <li class="menu-item @(currentController == "Approval" && currentAction == "Notifications" ? "active" : "")">
                 <a asp-controller="Approval" asp-action="Notifications" class="menu-link">
@@ -157,6 +157,13 @@
               <ul class="navbar-nav flex-row align-items-center ms-auto">
                 @if (activeUser != null)
                 {
+                  <!-- Notification link in navbar -->
+                  <li class="nav-item me-2">
+                    <a class="nav-link" asp-controller="Approval" asp-action="Notifications" title="Notifications">
+                      <i class="bx bx-bell fs-4 text-secondary"></i>
+                    </a>
+                  </li>
+
                   <!-- Active User Switcher dropdown -->
                   <li class="nav-item navbar-dropdown dropdown-user dropdown">
                     <a

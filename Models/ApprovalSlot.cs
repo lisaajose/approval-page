@@ -26,6 +26,7 @@ namespace ApprovalWorkflow.Models
         public int? ActionedByUserId { get => ActionedBy; set => ActionedBy = value; }
         public string? ActionedByUsername { get; set; }
         public bool IsCurrentActiveStage { get; set; }
+        public int Cycle { get; set; } = 1;
 
         public string AlertTypeDescription => AlertType switch
         {

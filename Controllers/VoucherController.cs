@@ -102,6 +102,7 @@ namespace ApprovalWorkflow.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
+                details.CurrentUserRole = currentUser.UserRole ?? 2;
                 return View(details);
             }
             catch (Exception ex)
@@ -110,6 +111,116 @@ namespace ApprovalWorkflow.Controllers
                 TempData["ErrorMessage"] = "An error occurred while retrieving the voucher details. Please try again later.";
                 return RedirectToAction(nameof(Index));
             }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var currentUser = await _userContextService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path });
+            }
+            ViewBag.CurrentUser = currentUser;
+
+            var details = await _voucherService.GetVoucherDetailsAsync(id, currentUser.UserId);
+            if (details.Header == null || details.Header.HeaderId == 0)
+            {
+                TempData["ErrorMessage"] = "Voucher not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (details.Header.AuthStatus != 2)
+            {
+                TempData["ErrorMessage"] = "Only rejected vouchers can be edited and resubmitted.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            // Only creator or admin can edit
+            if (details.Header.CreatedBy != currentUser.UserId && currentUser.UserRole != 1)
+            {
+                TempData["ErrorMessage"] = "Unauthorized: Only the creator of the voucher can edit and resubmit it.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var lastRejection = details.History
+                .Where(h => h.Action == "REJECTED")
+                .OrderByDescending(h => h.ActionDate)
+                .FirstOrDefault();
+
+            var model = new EditVoucherViewModel
+            {
+                HeaderId = details.Header.HeaderId,
+                VoucherNo = details.Header.VoucherNo,
+                Date = details.Header.Date,
+                Narration = details.Header.Narration,
+                Amount = details.Header.Amount,
+                PreviousWorkflowLevel = details.Header.WorkflowLevel,
+                LastRejectionReason = lastRejection?.Comments
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(EditVoucherViewModel model)
+        {
+            var currentUser = await _userContextService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path });
+            }
+            ViewBag.CurrentUser = currentUser;
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var result = await _voucherService.ResubmitVoucherAsync(model, currentUser.UserId);
+            if (!result.Success)
+            {
+                ModelState.AddModelError(string.Empty, result.Message);
+                return View(model);
+            }
+
+            TempData["SuccessMessage"] = result.Message;
+            return RedirectToAction(nameof(Details), new { id = model.HeaderId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendNotification(SendNotificationInputModel model)
+        {
+            var currentUser = await _userContextService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth", new { returnUrl = Request.Path });
+            }
+
+            if (model.HeaderId <= 0 || model.TargetUserId <= 0 || string.IsNullOrWhiteSpace(model.Comment))
+            {
+                TempData["ErrorMessage"] = "Recipient and remarks/comments are required to send a notification.";
+                return RedirectToAction(nameof(Details), new { id = model.HeaderId });
+            }
+
+            var result = await _approvalService.SendVoucherNotificationAsync(
+                model.HeaderId,
+                currentUser.UserId,
+                model.TargetUserId,
+                model.Comment);
+
+            if (result.Success)
+            {
+                TempData["SuccessMessage"] = result.Message;
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Failed to send notification: " + result.Message;
+            }
+
+            return RedirectToAction(nameof(Details), new { id = model.HeaderId });
         }
     }
 }

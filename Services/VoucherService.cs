@@ -95,6 +95,46 @@ namespace ApprovalWorkflow.Services
             }
         }
 
+        public async Task<OperationResult> ResubmitVoucherAsync(EditVoucherViewModel model, int actingUserId)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                await connection.OpenAsync();
+
+                using var command = new SqlCommand("dbo.usp_ResubmitVoucher", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                command.Parameters.Add("@iHeaderId", SqlDbType.Int).Value = model.HeaderId;
+                command.Parameters.Add("@ActingUserId", SqlDbType.Int).Value = actingUserId;
+                command.Parameters.Add("@dDate", SqlDbType.Date).Value = model.Date;
+                command.Parameters.Add("@sNarration", SqlDbType.NVarChar, 100).Value = (object?)model.Narration ?? DBNull.Value;
+                command.Parameters.Add("@Amount", SqlDbType.Decimal).Value = model.Amount;
+
+                var pWorkflowLevel = command.Parameters.Add("@NewWorkflowLevel", SqlDbType.Int);
+                pWorkflowLevel.Direction = ParameterDirection.Output;
+
+                var pMessage = command.Parameters.Add("@ResponseMessage", SqlDbType.NVarChar, 250);
+                pMessage.Direction = ParameterDirection.Output;
+
+                await command.ExecuteNonQueryAsync();
+
+                string msg = pMessage.Value?.ToString() ?? "Voucher resubmitted successfully.";
+                return OperationResult.Ok(msg);
+            }
+            catch (SqlException ex)
+            {
+                _logger.LogError(ex, "SQL Error resubmitting voucher {HeaderId}", model.HeaderId);
+                return OperationResult.Fail(ex.Message, ex.Number);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error resubmitting voucher {HeaderId}", model.HeaderId);
+                return OperationResult.Fail("An error occurred while resubmitting the voucher: " + ex.Message);
+            }
+        }
+
         public async Task<VoucherDetailsViewModel> GetVoucherDetailsAsync(int headerId, int currentUserId)
         {
             var viewModel = new VoucherDetailsViewModel
@@ -133,14 +173,24 @@ namespace ApprovalWorkflow.Services
                     CurrentPendingUserId = reader.IsDBNull(reader.GetOrdinal("CurrentPendingUserId")) ? null : reader.GetInt32(reader.GetOrdinal("CurrentPendingUserId")),
                     CurrentPendingUsername = reader.IsDBNull(reader.GetOrdinal("CurrentPendingUsername")) ? null : reader.GetString(reader.GetOrdinal("CurrentPendingUsername"))
                 };
+
+                try
+                {
+                    int cycleOrdinal = reader.GetOrdinal("CurrentCycle");
+                    if (!reader.IsDBNull(cycleOrdinal))
+                    {
+                        viewModel.CurrentCycle = reader.GetInt32(cycleOrdinal);
+                    }
+                }
+                catch { }
             }
 
-            // Result Set 2: The 4 vertical approval slots
+            // Result Set 2: The active cycle vertical approval slots
             if (await reader.NextResultAsync())
             {
                 while (await reader.ReadAsync())
                 {
-                    viewModel.ApprovalSlots.Add(new ApprovalSlot
+                    var slot = new ApprovalSlot
                     {
                         AuthId = reader.GetInt32(reader.GetOrdinal("iAuthId")),
                         HeaderId = reader.GetInt32(reader.GetOrdinal("iHeaderId")),
@@ -157,7 +207,16 @@ namespace ApprovalWorkflow.Services
                         ActionedBy = reader.IsDBNull(reader.GetOrdinal("iActionedBy")) ? null : reader.GetInt32(reader.GetOrdinal("iActionedBy")),
                         ActionedByUsername = reader.IsDBNull(reader.GetOrdinal("ActionedByUsername")) ? null : reader.GetString(reader.GetOrdinal("ActionedByUsername")),
                         IsCurrentActiveStage = reader.GetInt32(reader.GetOrdinal("IsCurrentActiveStage")) == 1
-                    });
+                    };
+
+                    try
+                    {
+                        int cOrd = reader.GetOrdinal("iCycle");
+                        if (!reader.IsDBNull(cOrd)) slot.Cycle = reader.GetInt32(cOrd);
+                    }
+                    catch { }
+
+                    viewModel.ApprovalSlots.Add(slot);
                 }
             }
 
@@ -166,7 +225,7 @@ namespace ApprovalWorkflow.Services
             {
                 while (await reader.ReadAsync())
                 {
-                    viewModel.Notifications.Add(new NotificationItem
+                    var notif = new NotificationItem
                     {
                         AuthId = reader.GetInt32(reader.GetOrdinal("iAuthId")),
                         HeaderId = reader.GetInt32(reader.GetOrdinal("iHeaderId")),
@@ -177,7 +236,16 @@ namespace ApprovalWorkflow.Services
                         ActionDate = reader.IsDBNull(reader.GetOrdinal("dActionDate")) ? null : reader.GetDateTime(reader.GetOrdinal("dActionDate")),
                         RecipientUserId = reader.GetInt32(reader.GetOrdinal("iUser")),
                         RecipientUsername = reader.GetString(reader.GetOrdinal("Username"))
-                    });
+                    };
+
+                    try
+                    {
+                        int cOrd = reader.GetOrdinal("iCycle");
+                        if (!reader.IsDBNull(cOrd)) notif.Cycle = reader.GetInt32(cOrd);
+                    }
+                    catch { }
+
+                    viewModel.Notifications.Add(notif);
                 }
             }
 
@@ -186,7 +254,7 @@ namespace ApprovalWorkflow.Services
             {
                 while (await reader.ReadAsync())
                 {
-                    viewModel.History.Add(new ApprovalHistoryItem
+                    var hist = new ApprovalHistoryItem
                     {
                         HistoryId = reader.GetInt32(reader.GetOrdinal("iHistoryId")),
                         HeaderId = reader.GetInt32(reader.GetOrdinal("iHeaderId")),
@@ -197,7 +265,50 @@ namespace ApprovalWorkflow.Services
                         Action = reader.GetString(reader.GetOrdinal("sAction")),
                         Comments = reader.IsDBNull(reader.GetOrdinal("sComments")) ? null : reader.GetString(reader.GetOrdinal("sComments")),
                         ActionDate = reader.GetDateTime(reader.GetOrdinal("dActionDate"))
-                    });
+                    };
+
+                    try
+                    {
+                        int cOrd = reader.GetOrdinal("iCycle");
+                        if (!reader.IsDBNull(cOrd)) hist.Cycle = reader.GetInt32(cOrd);
+                    }
+                    catch { }
+
+                    viewModel.History.Add(hist);
+                }
+            }
+
+            // Result Set 5: ALL Approval Slots Across ALL Cycles (For Auth Info Modal)
+            if (await reader.NextResultAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    var allSlot = new ApprovalSlot
+                    {
+                        AuthId = reader.GetInt32(reader.GetOrdinal("iAuthId")),
+                        HeaderId = reader.GetInt32(reader.GetOrdinal("iHeaderId")),
+                        AlertType = reader.GetInt32(reader.GetOrdinal("iAlerttype")),
+                        Level = reader.GetInt32(reader.GetOrdinal("iLevel")),
+                        AssignedUserId = reader.GetInt32(reader.GetOrdinal("iUser")),
+                        AssignedUsername = reader.GetString(reader.GetOrdinal("Username")),
+                        Alerts = reader.IsDBNull(reader.GetOrdinal("sAlerts")) ? null : reader.GetString(reader.GetOrdinal("sAlerts")),
+                        UserComments = reader.IsDBNull(reader.GetOrdinal("sUsercomments")) ? null : reader.GetString(reader.GetOrdinal("sUsercomments")),
+                        StepOrder = reader.GetInt32(reader.GetOrdinal("iStepOrder")),
+                        Status = reader.GetInt32(reader.GetOrdinal("iStatus")),
+                        StepStatusDescription = reader.GetString(reader.GetOrdinal("StepStatusDescription")),
+                        ActionDate = reader.IsDBNull(reader.GetOrdinal("dActionDate")) ? null : reader.GetDateTime(reader.GetOrdinal("dActionDate")),
+                        ActionedBy = reader.IsDBNull(reader.GetOrdinal("iActionedBy")) ? null : reader.GetInt32(reader.GetOrdinal("iActionedBy")),
+                        ActionedByUsername = reader.IsDBNull(reader.GetOrdinal("ActionedByUsername")) ? null : reader.GetString(reader.GetOrdinal("ActionedByUsername"))
+                    };
+
+                    try
+                    {
+                        int cOrd = reader.GetOrdinal("iCycle");
+                        if (!reader.IsDBNull(cOrd)) allSlot.Cycle = reader.GetInt32(cOrd);
+                    }
+                    catch { }
+
+                    viewModel.AllCycleSlots.Add(allSlot);
                 }
             }
 

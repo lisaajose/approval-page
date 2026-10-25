@@ -1,4 +1,4 @@
-@model List<ApprovalWorkflow.Models.NotificationItem>
+@model ApprovalWorkflow.Models.NotificationsPageViewModel
 
 @{
     ViewData["Title"] = "My Notifications";
@@ -12,93 +12,279 @@
       <span class="text-muted fw-light">Workflow /</span> Notifications
     </h4>
     <p class="text-muted mb-0 small">
-      Informational notifications received by <strong>@activeUser.Username</strong>.
+      Notifications and stage updates for <strong>@activeUser.Username</strong>.
       <strong class="text-danger">Important: Notifications do not confer approval authority.</strong>
     </p>
   </div>
-  <div>
+  <div class="d-flex gap-2">
+    <span class="badge bg-label-primary fs-6 px-3 py-2">
+      <i class="bx bx-bell me-1"></i> Total: @Model.TotalCount
+    </span>
     <span class="badge bg-label-warning fs-6 px-3 py-2">
-      <i class="bx bx-bell me-1"></i> @Model.Count Notifications
+      <i class="bx bx-envelope me-1"></i> Unread: @Model.UnreadCount
+    </span>
+    <span class="badge bg-label-success fs-6 px-3 py-2">
+      <i class="bx bx-envelope-open me-1"></i> Read: @Model.ReadCount
     </span>
   </div>
 </div>
 
-<!-- Notifications Card -->
-<div class="card shadow-sm border-0">
-  <div class="card-header border-bottom py-3 d-flex justify-content-between align-items-center">
-    <h5 class="card-title mb-0 fw-bold text-dark">
-      <i class="bx bx-bell text-warning me-2"></i>Notification Inbox
-    </h5>
+<!-- FILTER TABS & BULK ACTIONS CARD -->
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header border-bottom py-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <!-- Filter Navigation Tabs -->
+    <ul class="nav nav-pills card-header-pills">
+      <li class="nav-item">
+        <a class="nav-link @(Model.CurrentFilter == "ALL" ? "active" : "")" 
+           asp-controller="Approval" asp-action="Notifications" asp-route-filter="ALL">
+          <i class="bx bx-list-ul me-1"></i> All Notifications
+          <span class="badge rounded-pill bg-white text-dark ms-1">@Model.TotalCount</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link @(Model.CurrentFilter == "UNREAD" ? "active" : "")" 
+           asp-controller="Approval" asp-action="Notifications" asp-route-filter="UNREAD">
+          <i class="bx bx-envelope me-1"></i> Unread
+          <span class="badge rounded-pill @(Model.CurrentFilter == "UNREAD" ? "bg-white text-primary" : "bg-warning text-white") ms-1">@Model.UnreadCount</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link @(Model.CurrentFilter == "READ" ? "active" : "")" 
+           asp-controller="Approval" asp-action="Notifications" asp-route-filter="READ">
+          <i class="bx bx-envelope-open me-1"></i> Read
+          <span class="badge rounded-pill @(Model.CurrentFilter == "READ" ? "bg-white text-primary" : "bg-success text-white") ms-1">@Model.ReadCount</span>
+        </a>
+      </li>
+    </ul>
+
+    <!-- Quick "Mark All as Read" -->
+    @if (Model.UnreadCount > 0)
+    {
+      <form asp-controller="Approval" asp-action="MarkNotifications" method="post" class="d-inline">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ActionType" value="READ_ALL" />
+        <input type="hidden" name="CurrentFilter" value="@Model.CurrentFilter" />
+        <button type="submit" class="btn btn-outline-primary btn-sm">
+          <i class="bx bx-check-double me-1"></i> Mark All as Read
+        </button>
+      </form>
+    }
   </div>
 
-  <div class="table-responsive text-nowrap">
-    <table class="table table-hover align-middle mb-0">
-      <thead class="table-light">
-        <tr>
-          <th>Voucher No</th>
-          <th>Date</th>
-          <th class="text-end">Amount (₹)</th>
-          <th class="text-center">Workflow Level</th>
-          <th class="text-center">Voucher Status</th>
-          <th>Notification Alert</th>
-          <th class="text-center">Action</th>
-        </tr>
-      </thead>
-      <tbody class="table-border-bottom-0">
-        @if (!Model.Any())
-        {
-          <tr>
-            <td colspan="7" class="text-center py-5 text-muted">
-              <i class="bx bx-bell-off fs-1 text-secondary opacity-50 d-block mb-2"></i>
-              No notification records found for <strong>@activeUser.Username</strong>.
-              <div class="small mt-1 text-secondary">
-                Per the specification, notifications are received across all workflow levels (0 to 4).
-              </div>
-            </td>
-          </tr>
-        }
-        else
-        {
-          @foreach (var item in Model)
-          {
-            string statusBadgeClass = item.AuthStatus switch
-            {
-                0 => "bg-label-warning",
-                1 => "bg-label-success",
-                2 => "bg-label-danger",
-                _ => "bg-label-secondary"
-            };
+  <!-- Form for Bulk Selection & Actions -->
+  <form id="bulkNotifForm" asp-controller="Approval" asp-action="MarkNotifications" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="CurrentFilter" value="@Model.CurrentFilter" />
+    <input type="hidden" id="bulkActionType" name="ActionType" value="READ" />
 
+    <!-- Action Toolbar (shows selection actions) -->
+    <div class="card-body bg-lighter py-2 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <div class="form-check me-2">
+          <input class="form-check-input" type="checkbox" id="selectAllCheckbox" title="Select all visible notifications" />
+          <label class="form-check-label small fw-semibold text-muted" for="selectAllCheckbox">
+            Select All
+          </label>
+        </div>
+        <span class="small text-muted" id="selectedCountText">0 selected</span>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-sm btn-outline-success" id="btnMarkRead" onclick="submitBulkAction('READ')" disabled>
+          <i class="bx bx-envelope-open me-1"></i> Mark Selected as Read
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnMarkUnread" onclick="submitBulkAction('UNREAD')" disabled>
+          <i class="bx bx-envelope me-1"></i> Mark Selected as Unread
+        </button>
+      </div>
+    </div>
+
+    <!-- Table of Notifications -->
+    <div class="table-responsive text-nowrap">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 40px;" class="text-center">#</th>
+            <th style="width: 80px;" class="text-center">State</th>
+            <th>Voucher No</th>
+            <th>Date</th>
+            <th class="text-end">Amount (₹)</th>
+            <th class="text-center">Level</th>
+            <th class="text-center">Voucher Status</th>
+            <th>Notification Details</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="table-border-bottom-0">
+          @if (!Model.Notifications.Any())
+          {
             <tr>
-              <td>
-                <a asp-controller="Voucher" asp-action="Details" asp-route-id="@item.HeaderId" class="fw-bold text-primary">
-                  <i class="bx bx-file me-1"></i>@item.VoucherNo
-                </a>
-              </td>
-              <td>@item.Date.ToString("yyyy-MM-dd")</td>
-              <td class="text-end fw-bold text-dark">₹@item.Amount.ToString("N2")</td>
-              <td class="text-center">
-                <span class="badge bg-label-info">Level @item.Level</span>
-              </td>
-              <td class="text-center">
-                <span class="badge @statusBadgeClass">@item.HeaderStatusDescription</span>
-              </td>
-              <td>
-                <div class="small text-dark fw-medium">@(item.Alerts ?? "Voucher Notification")</div>
-                @if (!string.IsNullOrWhiteSpace(item.UserComments))
-                {
-                  <div class="small text-muted fst-italic">@item.UserComments</div>
-                }
-              </td>
-              <td class="text-center">
-                <a asp-controller="Voucher" asp-action="Details" asp-route-id="@item.HeaderId" class="btn btn-outline-primary btn-sm px-2 py-1">
-                  <i class="bx bx-show me-1"></i> View Voucher
-                </a>
+              <td colspan="9" class="text-center py-5 text-muted">
+                <i class="bx bx-bell-off fs-1 text-secondary opacity-50 d-block mb-2"></i>
+                No notifications found in the <strong>@Model.CurrentFilter</strong> view for <strong>@activeUser.Username</strong>.
+                <div class="small mt-1 text-secondary">
+                  Notifications appear here whenever a voucher is created, approved, rejected, or updated.
+                </div>
               </td>
             </tr>
           }
-        }
-      </tbody>
-    </table>
-  </div>
+          else
+          {
+            @foreach (var item in Model.Notifications)
+            {
+              string statusBadgeClass = item.AuthStatus switch
+              {
+                  0 => "bg-label-warning",
+                  1 => "bg-label-success",
+                  2 => "bg-label-danger",
+                  _ => "bg-label-secondary"
+              };
+
+              string rowClass = item.IsRead ? "" : "table-active fw-medium";
+
+              <tr class="@rowClass">
+                <td class="text-center">
+                  <input type="checkbox" name="AuthIds" value="@item.AuthId" class="form-check-input notif-checkbox" onchange="updateSelectionState()" />
+                </td>
+                <td class="text-center">
+                  @if (item.IsRead)
+                  {
+                    <span class="badge bg-label-secondary" title="Read notification">
+                      <i class="bx bx-envelope-open me-1"></i> Read
+                    </span>
+                  }
+                  else
+                  {
+                    <span class="badge bg-warning text-white" title="Unread notification">
+                      <i class="bx bx-envelope me-1"></i> Unread
+                    </span>
+                  }
+                </td>
+                <td>
+                  <a asp-controller="Voucher" asp-action="Details" asp-route-id="@item.HeaderId" class="fw-bold text-primary">
+                    <i class="bx bx-file me-1"></i>@item.VoucherNo
+                  </a>
+                </td>
+                <td>@item.Date.ToString("yyyy-MM-dd")</td>
+                <td class="text-end fw-bold text-dark">₹@item.Amount.ToString("N2")</td>
+                <td class="text-center">
+                  <span class="badge bg-label-info">Level @item.Level</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge @statusBadgeClass">@item.HeaderStatusDescription</span>
+                </td>
+                <td style="white-space: normal; min-width: 280px;">
+                  <div class="text-dark @(item.IsRead ? "fw-normal" : "fw-bold")">
+                    @(item.Alerts ?? "Voucher Notification")
+                  </div>
+                  @if (!string.IsNullOrWhiteSpace(item.UserComments))
+                  {
+                    <div class="small text-muted fst-italic mt-1">
+                      <i class="bx bx-comment-detail me-1"></i>"@item.UserComments"
+                    </div>
+                  }
+                  @if (item.ActionDate.HasValue)
+                  {
+                    <div class="small text-secondary mt-1">
+                      <i class="bx bx-time me-1"></i>@item.ActionDate.Value.ToString("yyyy-MM-dd HH:mm")
+                      @if (!string.IsNullOrEmpty(item.ActionedByUsername))
+                      {
+                        <span>by <strong>@item.ActionedByUsername</strong></span>
+                      }
+                    </div>
+                  }
+                </td>
+                <td class="text-center">
+                  <div class="d-inline-flex gap-1">
+                    <a asp-controller="Voucher" asp-action="Details" asp-route-id="@item.HeaderId" class="btn btn-outline-primary btn-sm px-2 py-1" title="View Voucher">
+                      <i class="bx bx-show"></i>
+                    </a>
+                    
+                    @if (item.IsRead)
+                    {
+                      <button type="submit" 
+                              asp-controller="Approval" 
+                              asp-action="ToggleSingleNotification" 
+                              asp-route-authId="@item.AuthId" 
+                              asp-route-makeRead="false" 
+                              asp-route-filter="@Model.CurrentFilter"
+                              class="btn btn-outline-secondary btn-sm px-2 py-1" 
+                              title="Mark as Unread">
+                        <i class="bx bx-envelope"></i>
+                      </button>
+                    }
+                    else
+                    {
+                      <button type="submit" 
+                              asp-controller="Approval" 
+                              asp-action="ToggleSingleNotification" 
+                              asp-route-authId="@item.AuthId" 
+                              asp-route-makeRead="true" 
+                              asp-route-filter="@Model.CurrentFilter"
+                              class="btn btn-outline-success btn-sm px-2 py-1" 
+                              title="Mark as Read">
+                        <i class="bx bx-check"></i>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </form>
 </div>
+
+@section Scripts {
+<script>
+  function updateSelectionState() {
+    const checkboxes = document.querySelectorAll('.notif-checkbox');
+    const checked = document.querySelectorAll('.notif-checkbox:checked');
+    const selectAll = document.getElementById('selectAllCheckbox');
+    const btnRead = document.getElementById('btnMarkRead');
+    const btnUnread = document.getElementById('btnMarkUnread');
+    const countText = document.getElementById('selectedCountText');
+
+    if (countText) {
+      countText.innerText = checked.length + ' selected';
+    }
+
+    if (btnRead) btnRead.disabled = checked.length === 0;
+    if (btnUnread) btnUnread.disabled = checked.length === 0;
+
+    if (selectAll) {
+      if (checkboxes.length > 0 && checked.length === checkboxes.length) {
+        selectAll.checked = true;
+        selectAll.indeterminate = false;
+      } else if (checked.length > 0) {
+        selectAll.checked = false;
+        selectAll.indeterminate = true;
+      } else {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+      }
+    }
+  }
+
+  document.getElementById('selectAllCheckbox')?.addEventListener('change', function () {
+    const isChecked = this.checked;
+    document.querySelectorAll('.notif-checkbox').forEach(cb => cb.checked = isChecked);
+    updateSelectionState();
+  });
+
+  function submitBulkAction(action) {
+    const checked = document.querySelectorAll('.notif-checkbox:checked');
+    if (checked.length === 0) {
+      alert('Please select at least one notification.');
+      return;
+    }
+    document.getElementById('bulkActionType').value = action;
+    document.getElementById('bulkNotifForm').submit();
+  }
+
+  // Initialize on load
+  document.addEventListener('DOMContentLoaded', updateSelectionState);
+</script>
+}
