@@ -22,9 +22,9 @@
   </div>
 </div>
 
-<div class="row g-4">
-  <!-- Left Column: Voucher Form -->
-  <div class="col-lg-7">
+<div class="row justify-content-center">
+  <!-- Voucher Entry Form -->
+  <div class="col-lg-8 col-xl-7">
     <div class="card shadow-sm border-0 mb-4">
       <div class="card-header border-bottom py-3">
         <h5 class="card-title mb-0 fw-bold text-dark">
@@ -93,129 +93,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Right Column: Live Approval Matrix Level Preview -->
-  <div class="col-lg-5">
-    <div class="card shadow-sm border-0 mb-4">
-      <div class="card-header border-bottom py-3">
-        <h5 class="card-title mb-0 fw-bold text-dark">
-          <i class="bx bx-git-branch text-primary me-2"></i>Live Approval Routing Preview
-        </h5>
-      </div>
-      <div class="card-body p-4">
-        <!-- Live Level Calculation Card -->
-        <div id="liveWorkflowCard" class="card bg-label-primary border-0 mb-4 p-3">
-          <div class="d-flex align-items-center mb-2">
-            <span class="badge bg-primary me-2" id="previewBadge">Level ?</span>
-            <strong id="previewTitle" class="text-dark fs-6">Enter an amount to preview routing</strong>
-          </div>
-          <div class="small text-secondary mb-2" id="previewSequence">
-            Sequential approvers will be determined by SQL Server.
-          </div>
-          <div class="small text-muted" id="previewNotif">
-            <i class="bx bx-bell me-1"></i> Notification: JP
-          </div>
-        </div>
-
-        <!-- Approval Matrix Reference -->
-        <h6 class="fw-bold text-dark mb-2">Matrix Policy Rules</h6>
-        <div class="list-group list-group-flush border rounded small">
-          <div class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <strong class="text-dark">Level 0: ₹0 – ₹50</strong>
-              <div class="text-muted">Auto-approved immediately; JP notified</div>
-            </div>
-            <span class="badge bg-label-success">Auto-Approved</span>
-          </div>
-          <div class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <strong class="text-dark">Level 1: ₹50.01 – ₹100</strong>
-              <div class="text-muted">Lisa; JP notified</div>
-            </div>
-            <span class="badge bg-label-primary">1 Approver</span>
-          </div>
-          <div class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <strong class="text-dark">Level 2: ₹100.01 – ₹500</strong>
-              <div class="text-muted">Lisa &rarr; Gautham; JP notified</div>
-            </div>
-            <span class="badge bg-label-info">2 Approvers</span>
-          </div>
-          <div class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <strong class="text-dark">Level 3: ₹500.01 – ₹1,000</strong>
-              <div class="text-muted">Lisa &rarr; Gautham &rarr; Edwin; JP notified</div>
-            </div>
-            <span class="badge bg-label-warning">3 Approvers</span>
-          </div>
-          <div class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <strong class="text-dark">Level 4: &gt; ₹1,000</strong>
-              <div class="text-muted">Lisa &rarr; Gautham &rarr; Edwin &rarr; JP; JP notified</div>
-            </div>
-            <span class="badge bg-label-danger">4 Approvers</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
 
-@section Scripts {
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const txtAmount = document.getElementById("txtAmount");
-      const previewBadge = document.getElementById("previewBadge");
-      const previewTitle = document.getElementById("previewTitle");
-      const previewSequence = document.getElementById("previewSequence");
-      const liveCard = document.getElementById("liveWorkflowCard");
 
-      function updatePreview() {
-        const val = parseFloat(txtAmount.value);
-        if (isNaN(val) || val < 0) {
-          previewBadge.textContent = "Level ?";
-          previewBadge.className = "badge bg-secondary me-2";
-          previewTitle.textContent = "Enter a valid amount";
-          previewSequence.textContent = "Sequential approvers will be determined by SQL Server.";
-          liveCard.className = "card bg-label-secondary border-0 mb-4 p-3";
-          return;
-        }
-
-        if (val <= 50.00) {
-          previewBadge.textContent = "Level 0";
-          previewBadge.className = "badge bg-success me-2";
-          previewTitle.textContent = "Micro Amount (₹0 – ₹50)";
-          previewSequence.innerHTML = "<strong>Straight-through Auto-Approved</strong> upon save. No approval tasks created.";
-          liveCard.className = "card bg-label-success border-0 mb-4 p-3";
-        } else if (val <= 100.00) {
-          previewBadge.textContent = "Level 1";
-          previewBadge.className = "badge bg-primary me-2";
-          previewTitle.textContent = "Low Amount (₹50.01 – ₹100)";
-          previewSequence.innerHTML = "Required Sequence: <strong>Lisa</strong>";
-          liveCard.className = "card bg-label-primary border-0 mb-4 p-3";
-        } else if (val <= 500.00) {
-          previewBadge.textContent = "Level 2";
-          previewBadge.className = "badge bg-info me-2";
-          previewTitle.textContent = "Medium Amount (₹100.01 – ₹500)";
-          previewSequence.innerHTML = "Required Sequence: <strong>Lisa &rarr; Gautham</strong>";
-          liveCard.className = "card bg-label-info border-0 mb-4 p-3";
-        } else if (val <= 1000.00) {
-          previewBadge.textContent = "Level 3";
-          previewBadge.className = "badge bg-warning me-2";
-          previewTitle.textContent = "High Amount (₹500.01 – ₹1,000)";
-          previewSequence.innerHTML = "Required Sequence: <strong>Lisa &rarr; Gautham &rarr; Edwin</strong>";
-          liveCard.className = "card bg-label-warning border-0 mb-4 p-3";
-        } else {
-          previewBadge.textContent = "Level 4";
-          previewBadge.className = "badge bg-danger me-2";
-          previewTitle.textContent = "Executive Amount (> ₹1,000)";
-          previewSequence.innerHTML = "Required Sequence: <strong>Lisa &rarr; Gautham &rarr; Edwin &rarr; JP</strong>";
-          liveCard.className = "card bg-label-danger border-0 mb-4 p-3";
-        }
-      }
-
-      txtAmount.addEventListener("input", updatePreview);
-      updatePreview();
-    });
-  </script>
-}
