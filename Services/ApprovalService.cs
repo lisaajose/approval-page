@@ -391,5 +391,86 @@ namespace ApprovalWorkflow.Services
                 return (false, null, "Authentication service error: " + ex.Message);
             }
         }
+
+        public async Task<List<ApprovalMatrixPolicy>> GetApprovalMatrixPoliciesAsync()
+        {
+            var policies = new List<ApprovalMatrixPolicy>();
+
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                await connection.OpenAsync();
+
+                using var command = new SqlCommand("dbo.usp_GetApprovalMatrixPolicies", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    policies.Add(new ApprovalMatrixPolicy
+                    {
+                        Level = reader.GetInt32(reader.GetOrdinal("iLevel")),
+                        LevelName = reader.GetString(reader.GetOrdinal("sLevelName")),
+                        MinAmount = reader.GetDecimal(reader.GetOrdinal("mMinAmount")),
+                        MaxAmount = reader.IsDBNull(reader.GetOrdinal("mMaxAmount")) ? null : reader.GetDecimal(reader.GetOrdinal("mMaxAmount")),
+                        ApproverDescription = reader.GetString(reader.GetOrdinal("sApproverDescription")),
+                        PolicyDescription = reader.GetString(reader.GetOrdinal("sPolicyDescription")),
+                        RequiredApprovers = reader.GetInt32(reader.GetOrdinal("iRequiredApprovers"))
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving approval matrix policies.");
+            }
+
+            return policies;
+        }
+
+        public async Task<OperationResult> UpdateApprovalMatrixPolicyAsync(int actingUserId, int level, decimal minAmount, decimal? maxAmount)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                await connection.OpenAsync();
+
+                using var command = new SqlCommand("dbo.usp_UpdateApprovalMatrixPolicy", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.AddWithValue("@ActingUserId", actingUserId);
+                command.Parameters.AddWithValue("@Level", level);
+                command.Parameters.AddWithValue("@MinAmount", minAmount);
+                if (maxAmount.HasValue)
+                {
+                    command.Parameters.AddWithValue("@MaxAmount", maxAmount.Value);
+                }
+                else
+                {
+                    command.Parameters.AddWithValue("@MaxAmount", DBNull.Value);
+                }
+
+                var pMessage = command.Parameters.Add("@ResponseMessage", SqlDbType.NVarChar, 250);
+                pMessage.Direction = ParameterDirection.Output;
+
+                await command.ExecuteNonQueryAsync();
+
+                string msg = pMessage.Value?.ToString() ?? "Policy updated successfully.";
+                return OperationResult.Ok(msg);
+            }
+            catch (SqlException ex)
+            {
+                _logger.LogError(ex, "SQL error updating approval matrix policy for Level {Level}", level);
+                return OperationResult.Fail(ex.Message, ex.Number);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating approval matrix policy for Level {Level}", level);
+                return OperationResult.Fail(ex.Message);
+            }
+        }
     }
 }

@@ -159,17 +159,11 @@
 @{
   var activeSlot = Model.ApprovalSlots.FirstOrDefault(s => s.IsCurrentActiveStage);
   bool isCurrentRequiredApprover = activeSlot != null && Model.Header.AuthStatus == 0 && activeUser.UserId == activeSlot.AssignedUserId;
+  var activeStagePolicy = activeSlot != null ? Model.MatrixPolicies.FirstOrDefault(p => p.Level == activeSlot.StepOrder) : null;
+  string activeRoleDesc = activeStagePolicy != null 
+      ? $"{activeStagePolicy.LevelName} Approver ({activeStagePolicy.AmountRangeFormatted})"
+      : (activeSlot != null ? $"Level {activeSlot.StepOrder} Approver" : "");
 }
-
-@if (isCurrentRequiredApprover)
-{
-  string activeRoleDesc = activeSlot!.StepOrder switch {
-      1 => "Level 1 Approver (₹50.01 - ₹100.00)",
-      2 => "Level 2 Approver (₹100.01 - ₹500.00)",
-      3 => "Level 3 Approver (₹500.01 - ₹1,000.00)",
-      4 => "Level 4 Approver (> ₹1,000.00)",
-      _ => ""
-  };
 
   <div class="card card-stage-active shadow-sm border-0 mb-4">
     <form method="post" id="cellActionForm">
@@ -536,55 +530,26 @@
           <div class="collapse" id="collapseApprovalRouting">
             <div class="card-body p-3">
               <!-- Current Voucher Amount Routing Context -->
+              @{
+                var currentVoucherPolicy = Model.MatrixPolicies.FirstOrDefault(p => p.Level == Model.Header.WorkflowLevel);
+              }
               <div class="card bg-label-primary border-0 mb-3 p-3">
                 <div class="d-flex align-items-center mb-1">
                   <span class="badge bg-primary me-2">Level @Model.Header.WorkflowLevel</span>
                   <strong class="text-dark fs-6">
-                    @if (Model.Header.WorkflowLevel == 0)
+                    @if (currentVoucherPolicy != null)
                     {
-                      <span>Micro Amount (₹0 – ₹50) &bull; Auto-Approved</span>
-                    }
-                    else if (Model.Header.WorkflowLevel == 1)
-                    {
-                      <span>Low Amount (₹50.01 – ₹100) &bull; 1 Approver</span>
-                    }
-                    else if (Model.Header.WorkflowLevel == 2)
-                    {
-                      <span>Medium Amount (₹100.01 – ₹500) &bull; 2 Approvers</span>
-                    }
-                    else if (Model.Header.WorkflowLevel == 3)
-                    {
-                      <span>High Amount (₹500.01 – ₹1,000) &bull; 3 Approvers</span>
+                      <span>@currentVoucherPolicy.LevelName (@currentVoucherPolicy.AmountRangeFormatted) &bull; @(currentVoucherPolicy.RequiredApprovers == 0 ? "Auto-Approved" : $"{currentVoucherPolicy.RequiredApprovers} Approver(s)")</span>
                     }
                     else
                     {
-                      <span>Executive Amount (&gt; ₹1,000) &bull; 4 Approvers</span>
+                      <span>Level @Model.Header.WorkflowLevel</span>
                     }
                   </strong>
                 </div>
                 <div class="small text-secondary mb-1">
                   Amount: <strong>₹@Model.Header.Amount.ToString("N2")</strong> &bull;
-                  Sequence: 
-                  @if (Model.Header.WorkflowLevel == 0)
-                  {
-                    <strong>Straight-through Auto-Approved</strong>
-                  }
-                  else if (Model.Header.WorkflowLevel == 1)
-                  {
-                    <strong>Lisa</strong>
-                  }
-                  else if (Model.Header.WorkflowLevel == 2)
-                  {
-                    <strong>Lisa &rarr; Gautham</strong>
-                  }
-                  else if (Model.Header.WorkflowLevel == 3)
-                  {
-                    <strong>Lisa &rarr; Gautham &rarr; Edwin</strong>
-                  }
-                  else
-                  {
-                    <strong>Lisa &rarr; Gautham &rarr; Edwin &rarr; JP</strong>
-                  }
+                  Sequence: <strong>@(currentVoucherPolicy?.ApproverDescription ?? "Sequential approvers determined by policy")</strong>
                 </div>
                 <div class="small text-muted">
                   <i class="bx bx-bell me-1"></i> Management Notification: JP (MD)
@@ -594,41 +559,27 @@
               <!-- Approval Matrix Policy Rules Table -->
               <h6 class="fw-bold text-dark mb-2 small text-uppercase">Matrix Policy Rules</h6>
               <div class="list-group list-group-flush border rounded small">
-                <div class="list-group-item d-flex justify-content-between align-items-center @(Model.Header.WorkflowLevel == 0 ? "bg-lighter fw-bold border-primary" : "")">
-                  <div>
-                    <strong class="text-dark">Level 0: ₹0 – ₹50</strong>
-                    <div class="text-muted">Auto-approved immediately; JP notified</div>
+                @foreach (var policy in Model.MatrixPolicies.OrderBy(p => p.Level))
+                {
+                  bool isCurrent = Model.Header.WorkflowLevel == policy.Level;
+                  string badgeLabelClass = policy.Level switch {
+                      0 => "bg-label-success",
+                      1 => "bg-label-primary",
+                      2 => "bg-label-info",
+                      3 => "bg-label-warning",
+                      _ => "bg-label-danger"
+                  };
+
+                  <div class="list-group-item d-flex justify-content-between align-items-center @(isCurrent ? "bg-lighter fw-bold border-primary border-2" : "")">
+                    <div>
+                      <strong class="text-dark">@policy.LevelName: @policy.AmountRangeFormatted</strong>
+                      <div class="text-muted">@policy.PolicyDescription</div>
+                    </div>
+                    <span class="badge @badgeLabelClass">
+                      @(policy.RequiredApprovers == 0 ? "Auto-Approved" : $"{policy.RequiredApprovers} Approver(s)")
+                    </span>
                   </div>
-                  <span class="badge bg-label-success">Auto-Approved</span>
-                </div>
-                <div class="list-group-item d-flex justify-content-between align-items-center @(Model.Header.WorkflowLevel == 1 ? "bg-lighter fw-bold border-primary" : "")">
-                  <div>
-                    <strong class="text-dark">Level 1: ₹50.01 – ₹100</strong>
-                    <div class="text-muted">Lisa; JP notified</div>
-                  </div>
-                  <span class="badge bg-label-primary">1 Approver</span>
-                </div>
-                <div class="list-group-item d-flex justify-content-between align-items-center @(Model.Header.WorkflowLevel == 2 ? "bg-lighter fw-bold border-primary" : "")">
-                  <div>
-                    <strong class="text-dark">Level 2: ₹100.01 – ₹500</strong>
-                    <div class="text-muted">Lisa &rarr; Gautham; JP notified</div>
-                  </div>
-                  <span class="badge bg-label-info">2 Approvers</span>
-                </div>
-                <div class="list-group-item d-flex justify-content-between align-items-center @(Model.Header.WorkflowLevel == 3 ? "bg-lighter fw-bold border-primary" : "")">
-                  <div>
-                    <strong class="text-dark">Level 3: ₹500.01 – ₹1,000</strong>
-                    <div class="text-muted">Lisa &rarr; Gautham &rarr; Edwin; JP notified</div>
-                  </div>
-                  <span class="badge bg-label-warning">3 Approvers</span>
-                </div>
-                <div class="list-group-item d-flex justify-content-between align-items-center @(Model.Header.WorkflowLevel == 4 ? "bg-lighter fw-bold border-primary" : "")">
-                  <div>
-                    <strong class="text-dark">Level 4: &gt; ₹1,000</strong>
-                    <div class="text-muted">Lisa &rarr; Gautham &rarr; Edwin &rarr; JP; JP notified</div>
-                  </div>
-                  <span class="badge bg-label-danger">4 Approvers</span>
-                </div>
+                }
               </div>
             </div>
           </div>

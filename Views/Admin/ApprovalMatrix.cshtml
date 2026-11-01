@@ -1,0 +1,167 @@
+@model ApprovalWorkflow.Models.AdminApprovalMatrixViewModel
+@{
+    ViewData["Title"] = "Approval Matrix Administration";
+}
+
+<!-- Page Heading & Breadcrumb -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-bold py-1 mb-1">
+      <span class="text-muted fw-light">Administration /</span> Approval Levels &amp; Amount Ranges
+    </h4>
+    <p class="text-muted mb-0 small">
+      Configure approval thresholds, minimum/maximum financial ranges, and workflow rules stored directly in SQL Server.
+    </p>
+  </div>
+  <div>
+    <a asp-controller="Voucher" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+      <i class="bx bx-arrow-back me-1"></i> Back to Vouchers
+    </a>
+  </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+  <div class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">
+    <div class="d-flex align-items-center">
+      <i class="bx bx-check-circle fs-4 me-2"></i>
+      <div>@TempData["SuccessMessage"]</div>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+  <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert">
+    <div class="d-flex align-items-center">
+      <i class="bx bx-error-circle fs-4 me-2"></i>
+      <div>@TempData["ErrorMessage"]</div>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+}
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header border-bottom py-3 d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-primary rounded-pill p-2">
+        <i class="bx bx-slider-alt fs-5"></i>
+      </span>
+      <div>
+        <h5 class="card-title mb-0 fw-bold text-dark">Configurable Approval Matrix</h5>
+        <small class="text-muted">Edit boundary amounts and click Save to instantly update database routing rules.</small>
+      </div>
+    </div>
+    <span class="badge bg-label-info">
+      <i class="bx bx-shield-quarter me-1"></i> Admin Role Only
+    </span>
+  </div>
+
+  <div class="table-responsive text-nowrap">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 100px;">Level</th>
+          <th style="width: 200px;">Min Amount (₹)</th>
+          <th style="width: 200px;">Max Amount (₹)</th>
+          <th>Approvers &amp; Sequence</th>
+          <th>Policy Description</th>
+          <th style="width: 120px;" class="text-center">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var policy in Model.Policies.OrderBy(p => p.Level))
+        {
+          string badgeClass = policy.Level switch {
+              0 => "bg-label-success",
+              1 => "bg-label-primary",
+              2 => "bg-label-info",
+              3 => "bg-label-warning",
+              _ => "bg-label-danger"
+          };
+
+          <tr>
+            <form asp-action="UpdatePolicy" method="post" class="d-contents">
+              @Html.AntiForgeryToken()
+              <input type="hidden" name="Level" value="@policy.Level" />
+
+              <!-- Level Badge -->
+              <td>
+                <span class="badge @badgeClass fs-6 px-3 py-2 rounded-pill">
+                  Level @policy.Level
+                </span>
+                @if (policy.Level == 0)
+                {
+                  <span class="badge bg-success ms-1 small" style="font-size: 0.65rem;">Auto</span>
+                }
+              </td>
+
+              <!-- Min Amount Input -->
+              <td>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text fw-bold">₹</span>
+                  <input type="number" 
+                         step="0.01" 
+                         min="0" 
+                         name="MinAmount" 
+                         class="form-control fw-semibold" 
+                         value="@policy.MinAmount.ToString("0.00")" 
+                         required />
+                </div>
+              </td>
+
+              <!-- Max Amount Input -->
+              <td>
+                @if (policy.Level == 4)
+                {
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text fw-bold">₹</span>
+                    <input type="text" class="form-control text-muted bg-light" value="No upper limit (&infin;)" disabled />
+                    <input type="hidden" name="MaxAmount" value="" />
+                  </div>
+                }
+                else
+                {
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text fw-bold">₹</span>
+                    <input type="number" 
+                           step="0.01" 
+                           min="0" 
+                           name="MaxAmount" 
+                           class="form-control fw-semibold" 
+                           value="@(policy.MaxAmount.HasValue ? policy.MaxAmount.Value.ToString("0.00") : "")" 
+                           placeholder="Upper Limit" 
+                           required />
+                  </div>
+                }
+              </td>
+
+              <!-- Approver Chain -->
+              <td>
+                <strong class="text-dark">@policy.ApproverDescription</strong>
+                <div class="text-muted small">
+                  @(policy.RequiredApprovers == 0 ? "No manual approvers" : $"{policy.RequiredApprovers} sequential approver(s)")
+                </div>
+              </td>
+
+              <!-- Policy Notes -->
+              <td>
+                <span class="small text-secondary">
+                  <i class="bx bx-info-circle me-1 text-primary"></i>@policy.PolicyDescription
+                </span>
+              </td>
+
+              <!-- Save Button -->
+              <td class="text-center">
+                <button type="submit" class="btn btn-primary btn-sm px-3 shadow-xs">
+                  <i class="bx bx-save me-1"></i> Save
+                </button>
+              </td>
+            </form>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

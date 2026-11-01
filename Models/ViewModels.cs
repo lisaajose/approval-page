@@ -49,6 +49,7 @@ namespace ApprovalWorkflow.Models
         public List<ApprovalSlot> AllCycleSlots { get; set; } = new List<ApprovalSlot>();
         public List<NotificationItem> Notifications { get; set; } = new List<NotificationItem>();
         public List<ApprovalHistoryItem> History { get; set; } = new List<ApprovalHistoryItem>();
+        public List<ApprovalMatrixPolicy> MatrixPolicies { get; set; } = new List<ApprovalMatrixPolicy>();
 
         public int CurrentUserId { get; set; }
         public string CurrentUsername { get; set; } = string.Empty;
@@ -90,6 +91,7 @@ namespace ApprovalWorkflow.Models
 
         public int PreviousWorkflowLevel { get; set; }
         public string? LastRejectionReason { get; set; }
+        public List<ApprovalMatrixPolicy> MatrixPolicies { get; set; } = new List<ApprovalMatrixPolicy>();
     }
 
     public class ApprovalActionInputModel

@@ -158,6 +158,21 @@
                   }
                 </a>
               </li>
+
+              @if (activeUser.UserRole == 1)
+              {
+                <!-- Admin Header -->
+                <li class="menu-header small text-uppercase">
+                  <span class="menu-header-text">Administration</span>
+                </li>
+
+                <li class="menu-item @(currentController == "Admin" && currentAction == "ApprovalMatrix" ? "active" : "")">
+                  <a asp-controller="Admin" asp-action="ApprovalMatrix" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-slider-alt"></i>
+                    <div data-i18n="Approval Matrix">Approval Matrix</div>
+                  </a>
+                </li>
+              }
             }
           </ul>
         </aside>

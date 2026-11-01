@@ -103,6 +103,7 @@ namespace ApprovalWorkflow.Controllers
                 }
 
                 details.CurrentUserRole = currentUser.UserRole ?? 2;
+                details.MatrixPolicies = await _approvalService.GetApprovalMatrixPoliciesAsync();
                 return View(details);
             }
             catch (Exception ex)
@@ -156,7 +157,8 @@ namespace ApprovalWorkflow.Controllers
                 Narration = details.Header.Narration,
                 Amount = details.Header.Amount,
                 PreviousWorkflowLevel = details.Header.WorkflowLevel,
-                LastRejectionReason = lastRejection?.Comments
+                LastRejectionReason = lastRejection?.Comments,
+                MatrixPolicies = await _approvalService.GetApprovalMatrixPoliciesAsync()
             };
 
             return View(model);

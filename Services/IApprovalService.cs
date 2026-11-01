@@ -15,5 +15,7 @@ namespace ApprovalWorkflow.Services
         Task<List<User>> GetAllUsersAsync();
         Task<User?> GetUserByIdAsync(int userId);
         Task<(bool Success, User? User, string Message)> ValidateUserLoginAsync(string usernameOrEmail, string password);
+        Task<List<ApprovalMatrixPolicy>> GetApprovalMatrixPoliciesAsync();
+        Task<OperationResult> UpdateApprovalMatrixPolicyAsync(int actingUserId, int level, decimal minAmount, decimal? maxAmount);
     }
 }
