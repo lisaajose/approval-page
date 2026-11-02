@@ -1,4 +1,4 @@
-@model ApprovalWorkflow.Models.VoucherDetailsViewModel
+﻿@model ApprovalWorkflow.Models.VoucherDetailsViewModel
 
 @{
     ViewData["Title"] = $"Approval - Voucher {Model.Header.VoucherNo}";
@@ -165,6 +165,8 @@
       : (activeSlot != null ? $"Level {activeSlot.StepOrder} Approver" : "");
 }
 
+@if (isCurrentRequiredApprover)
+{
   <div class="card card-stage-active shadow-sm border-0 mb-4">
     <form method="post" id="cellActionForm">
       @Html.AntiForgeryToken()
