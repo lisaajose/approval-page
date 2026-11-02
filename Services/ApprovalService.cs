@@ -472,5 +472,151 @@ namespace ApprovalWorkflow.Services
                 return OperationResult.Fail(ex.Message);
             }
         }
+        public async Task<OperationResult> ImportApprovalMatrixFromXmlAsync(int actingUserId, string xmlContent)
+        {
+            // ---- Tier 1: C# pre-flight validation ----
+            if (string.IsNullOrWhiteSpace(xmlContent))
+                return OperationResult.Fail("XML content is empty.");
+
+            System.Xml.Linq.XDocument doc;
+            try
+            {
+                doc = System.Xml.Linq.XDocument.Parse(xmlContent);
+            }
+            catch (Exception ex)
+            {
+                return OperationResult.Fail("The uploaded file is not valid XML: " + ex.Message);
+            }
+
+            var policyElements = doc.Root?
+                .Elements()
+                .Where(e => e.Name.LocalName == "Policy")
+                .ToList();
+
+            if (policyElements == null || policyElements.Count == 0)
+                return OperationResult.Fail("No <Policy> elements found in the XML document.");
+
+            var parsed = new List<(int Level, decimal MinAmount, decimal? MaxAmount, int RequiredApprovers)>();
+            foreach (var el in policyElements)
+            {
+                string? levelAttr    = el.Attribute("level")?.Value;
+                string? minAmountStr = el.Elements().FirstOrDefault(x => x.Name.LocalName == "MinAmount")?.Value;
+                string? maxAmountStr = el.Elements().FirstOrDefault(x => x.Name.LocalName == "MaxAmount")?.Value;
+                string? reqStr       = el.Elements().FirstOrDefault(x => x.Name.LocalName == "RequiredApprovers")?.Value;
+
+                if (!int.TryParse(levelAttr, out int lvl))
+                    return OperationResult.Fail($"A <Policy> element has a missing or non-integer 'level' attribute: '{levelAttr}'.");
+                if (!decimal.TryParse(minAmountStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal minAmt))
+                    return OperationResult.Fail($"Level {lvl}: MinAmount '{minAmountStr}' is not a valid decimal.");
+                if (!int.TryParse(reqStr, out int req))
+                    return OperationResult.Fail($"Level {lvl}: RequiredApprovers '{reqStr}' is not a valid integer.");
+
+                decimal? maxAmt = null;
+                if (!string.IsNullOrWhiteSpace(maxAmountStr))
+                {
+                    if (!decimal.TryParse(maxAmountStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedMax))
+                        return OperationResult.Fail($"Level {lvl}: MaxAmount '{maxAmountStr}' is not a valid decimal.");
+                    maxAmt = parsedMax;
+                }
+
+                if (minAmt < 0)
+                    return OperationResult.Fail($"Level {lvl}: MinAmount cannot be negative.");
+                if (maxAmt.HasValue && maxAmt.Value <= minAmt)
+                    return OperationResult.Fail($"Level {lvl}: MaxAmount must be greater than MinAmount.");
+
+                parsed.Add((lvl, minAmt, maxAmt, req));
+            }
+
+            // Continuity: gap / overlap detection between consecutive levels
+            var sorted = parsed.OrderBy(p => p.Level).ToList();
+            int maxLevel = sorted.Max(p => p.Level);
+
+            var nullMaxNonTop = sorted.Where(p => p.MaxAmount == null && p.Level != maxLevel).ToList();
+            if (nullMaxNonTop.Any())
+                return OperationResult.Fail($"Only the highest level may have an unlimited MaxAmount. Level(s) {string.Join(", ", nullMaxNonTop.Select(p => p.Level))} have no MaxAmount.");
+
+            for (int i = 0; i < sorted.Count - 1; i++)
+            {
+                var current = sorted[i];
+                var next    = sorted[i + 1];
+                if (!current.MaxAmount.HasValue)
+                    return OperationResult.Fail($"Level {current.Level} has no MaxAmount but it is not the highest level.");
+
+                decimal expectedNextMin = current.MaxAmount.Value + 0.01m;
+                if (Math.Abs(next.MinAmount - expectedNextMin) > 0.009m)
+                    return OperationResult.Fail(
+                        $"Gap or overlap detected between Level {current.Level} and Level {next.Level}. " +
+                        $"Level {current.Level} ends at {current.MaxAmount.Value:N2}; " +
+                        $"Level {next.Level} must start at {expectedNextMin:N2} but starts at {next.MinAmount:N2}.");
+            }
+
+            // ---- Tier 2: SQL stored procedure (transactional) ----
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                await connection.OpenAsync();
+
+                using var command = new SqlCommand("dbo.usp_ImportApprovalMatrixFromXml", connection)
+                {
+                    CommandType    = CommandType.StoredProcedure,
+                    CommandTimeout = 30
+                };
+
+                command.Parameters.AddWithValue("@ActingUserId", actingUserId);
+
+                var xmlParam   = command.Parameters.Add("@XmlData", SqlDbType.Xml);
+                xmlParam.Value = doc.ToString();
+
+                var pMessage       = command.Parameters.Add("@ResponseMessage", SqlDbType.NVarChar, 500);
+                pMessage.Direction = ParameterDirection.Output;
+
+                await command.ExecuteNonQueryAsync();
+
+                string msg = pMessage.Value?.ToString() ?? "Import completed successfully.";
+                return OperationResult.Ok(msg);
+            }
+            catch (SqlException ex)
+            {
+                _logger.LogError(ex, "SQL error importing approval matrix from XML.");
+                return OperationResult.Fail(ex.Message, ex.Number);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error importing approval matrix from XML.");
+                return OperationResult.Fail(ex.Message);
+            }
+        }
+
+        public async Task<(bool Success, string XmlContent, string Message)> ExportApprovalMatrixAsXmlAsync()
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                await connection.OpenAsync();
+
+                using var command = new SqlCommand("dbo.usp_ExportApprovalMatrixAsXml", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                var raw = await command.ExecuteScalarAsync();
+                if (raw == null || raw == DBNull.Value)
+                    return (false, string.Empty, "Export failed: no data returned from the database.");
+
+                string xmlContent = raw.ToString()!;
+                string fullXml    = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n" + xmlContent;
+                return (true, fullXml, "Export successful.");
+            }
+            catch (SqlException ex)
+            {
+                _logger.LogError(ex, "SQL error exporting approval matrix as XML.");
+                return (false, string.Empty, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting approval matrix as XML.");
+                return (false, string.Empty, ex.Message);
+            }
+        }
     }
 }

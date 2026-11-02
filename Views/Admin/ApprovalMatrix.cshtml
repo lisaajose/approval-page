@@ -9,11 +9,26 @@
     <h4 class="fw-bold py-1 mb-1">
       <span class="text-muted fw-light">Administration /</span> Approval Levels &amp; Amount Ranges
     </h4>
-    <p class="text-muted mb-0 small">
-      Configure approval thresholds, minimum/maximum financial ranges, and workflow rules stored directly in SQL Server.
-    </p>
   </div>
-  <div>
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <!-- Download Template -->
+    <a asp-controller="Admin" asp-action="DownloadMatrixTemplate"
+       class="btn btn-outline-secondary btn-sm"
+       title="Download a valid XML template pre-filled with current policy values">
+      <i class="bx bx-download me-1"></i> Download Template
+    </a>
+    <!-- Export current matrix -->
+    <a asp-controller="Admin" asp-action="ExportMatrixXml"
+       class="btn btn-outline-info btn-sm"
+       title="Export the current live approval matrix as an XML file">
+      <i class="bx bx-export me-1"></i> Export Matrix (XML)
+    </a>
+    <!-- Import XML -->
+    <button type="button" class="btn btn-outline-success btn-sm"
+            data-bs-toggle="modal" data-bs-target="#modalImportXml"
+            title="Upload an XML file to bulk-update all policy levels at once">
+      <i class="bx bx-import me-1"></i> Import XML
+    </button>
     <a asp-controller="Voucher" asp-action="Index" class="btn btn-outline-secondary btn-sm">
       <i class="bx bx-arrow-back me-1"></i> Back to Vouchers
     </a>
@@ -50,7 +65,7 @@
       </span>
       <div>
         <h5 class="card-title mb-0 fw-bold text-dark">Configurable Approval Matrix</h5>
-        <small class="text-muted">Edit boundary amounts and click Save to instantly update database routing rules.</small>
+        <small class="text-muted">Edit boundary amounts and click Save to instantly update database routing rules, or use Import XML to update all levels at once.</small>
       </div>
     </div>
     <span class="badge bg-label-info">
@@ -101,23 +116,23 @@
               <td>
                 <div class="input-group input-group-sm">
                   <span class="input-group-text fw-bold">₹</span>
-                  <input type="number" 
-                         step="0.01" 
-                         min="0" 
-                         name="MinAmount" 
-                         class="form-control fw-semibold" 
-                         value="@policy.MinAmount.ToString("0.00")" 
+                  <input type="number"
+                         step="0.01"
+                         min="0"
+                         name="MinAmount"
+                         class="form-control fw-semibold"
+                         value="@policy.MinAmount.ToString("0.00")"
                          required />
                 </div>
               </td>
 
               <!-- Max Amount Input -->
               <td>
-                @if (policy.Level == 4)
+                @if (!policy.MaxAmount.HasValue)
                 {
                   <div class="input-group input-group-sm">
                     <span class="input-group-text fw-bold">₹</span>
-                    <input type="text" class="form-control text-muted bg-light" value="No upper limit (&infin;)" disabled />
+                    <input type="text" class="form-control text-muted bg-light" value="No upper limit (∞)" disabled />
                     <input type="hidden" name="MaxAmount" value="" />
                   </div>
                 }
@@ -125,13 +140,13 @@
                 {
                   <div class="input-group input-group-sm">
                     <span class="input-group-text fw-bold">₹</span>
-                    <input type="number" 
-                           step="0.01" 
-                           min="0" 
-                           name="MaxAmount" 
-                           class="form-control fw-semibold" 
-                           value="@(policy.MaxAmount.HasValue ? policy.MaxAmount.Value.ToString("0.00") : "")" 
-                           placeholder="Upper Limit" 
+                    <input type="number"
+                           step="0.01"
+                           min="0"
+                           name="MaxAmount"
+                           class="form-control fw-semibold"
+                           value="@(policy.MaxAmount.Value.ToString("0.00"))"
+                           placeholder="Upper Limit"
                            required />
                   </div>
                 }
@@ -165,3 +180,111 @@
     </table>
   </div>
 </div>
+
+<!-- =====================================================================
+     IMPORT XML MODAL
+     ===================================================================== -->
+<div class="modal fade" id="modalImportXml" tabindex="-1" aria-labelledby="modalImportXmlLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold" id="modalImportXmlLabel">
+          <i class="bx bx-import text-success me-2"></i>Import Approval Matrix from XML
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <form asp-controller="Admin" asp-action="ImportMatrixXml" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+
+        <div class="modal-body p-4">
+
+          <!-- Info block -->
+          <div class="alert alert-info border-0 shadow-none mb-4">
+            <div class="d-flex gap-2">
+              <i class="bx bx-info-circle fs-5 flex-shrink-0 mt-1"></i>
+              <div class="small">
+                <strong>How XML Import Works</strong>
+                <ul class="mb-0 mt-1 ps-3">
+                  <li>Upload a valid <code>.xml</code> file (max 2 MB) matching the required schema.</li>
+                  <li>All existing approval levels are updated atomically in a single database transaction.</li>
+                  <li>You cannot add or remove levels via XML — only update their amount boundaries.</li>
+                  <li>Amount ranges must be <strong>gap-free and contiguous</strong>: each level's MinAmount must equal the previous level's MaxAmount + ₹0.01.</li>
+                  <li>Only the <strong>highest level</strong> may have an empty <code>&lt;MaxAmount&gt;</code> (representing no upper limit).</li>
+                  <li>Existing pending vouchers are unaffected; only new and resubmitted vouchers use the updated routing.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- File Picker -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="xmlFileInput">
+              Select XML File <span class="text-danger">*</span>
+            </label>
+            <input type="file"
+                   id="xmlFileInput"
+                   name="xmlFile"
+                   class="form-control"
+                   accept=".xml,application/xml,text/xml"
+                   required
+                   onchange="handleXmlFileSelect(this)" />
+            <div class="form-text text-muted">Accepted: <code>.xml</code> &bull; Max size: 2 MB</div>
+          </div>
+
+          <!-- Live preview of selected file info -->
+          <div id="xmlFileInfo" class="d-none">
+            <div class="card border bg-lighter shadow-none mb-3">
+              <div class="card-body py-2 px-3 small">
+                <div class="d-flex justify-content-between">
+                  <span><i class="bx bx-file-blank me-1 text-primary"></i><strong id="xmlFileName"></strong></span>
+                  <span class="text-muted" id="xmlFileSize"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Download template shortcut inside modal -->
+          <div class="text-center mt-2">
+            <a asp-controller="Admin" asp-action="DownloadMatrixTemplate"
+               class="btn btn-link btn-sm text-secondary p-0">
+              <i class="bx bx-download me-1"></i>Download pre-filled XML template (based on current live policies)
+            </a>
+          </div>
+
+        </div>
+
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <i class="bx bx-x me-1"></i> Cancel
+          </button>
+          <button type="submit" class="btn btn-success px-4">
+            <i class="bx bx-upload me-1"></i> Validate &amp; Import
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+  <script>
+    function handleXmlFileSelect(input) {
+      var infoDiv  = document.getElementById('xmlFileInfo');
+      var nameSpan = document.getElementById('xmlFileName');
+      var sizeSpan = document.getElementById('xmlFileSize');
+
+      if (input.files && input.files.length > 0) {
+        var file    = input.files[0];
+        var sizeKb  = (file.size / 1024).toFixed(1);
+        nameSpan.textContent = file.name;
+        sizeSpan.textContent = sizeKb + ' KB';
+        infoDiv.classList.remove('d-none');
+      } else {
+        infoDiv.classList.add('d-none');
+      }
+    }
+  </script>
+}
