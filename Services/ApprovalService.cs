@@ -341,6 +341,16 @@ namespace ApprovalWorkflow.Services
             return users.FirstOrDefault(u => u.UserId == userId);
         }
 
+        public async Task<User?> GetUserByEmailOrUsernameAsync(string emailOrUsername)
+        {
+            if (string.IsNullOrWhiteSpace(emailOrUsername)) return null;
+            var users = await GetAllUsersAsync();
+            var target = emailOrUsername.Trim();
+            return users.FirstOrDefault(u => 
+                string.Equals(u.Email, target, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(u.Username, target, StringComparison.OrdinalIgnoreCase));
+        }
+
         public async Task<(bool Success, User? User, string Message)> ValidateUserLoginAsync(string usernameOrEmail, string password)
         {
             try

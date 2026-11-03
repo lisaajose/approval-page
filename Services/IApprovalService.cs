@@ -14,6 +14,7 @@ namespace ApprovalWorkflow.Services
         Task<OperationResult> SendVoucherNotificationAsync(int headerId, int actingUserId, int targetUserId, string comment);
         Task<List<User>> GetAllUsersAsync();
         Task<User?> GetUserByIdAsync(int userId);
+        Task<User?> GetUserByEmailOrUsernameAsync(string emailOrUsername);
         Task<(bool Success, User? User, string Message)> ValidateUserLoginAsync(string usernameOrEmail, string password);
         Task<List<ApprovalMatrixPolicy>> GetApprovalMatrixPoliciesAsync();
         Task<OperationResult> UpdateApprovalMatrixPolicyAsync(int actingUserId, int level, decimal minAmount, decimal? maxAmount);
