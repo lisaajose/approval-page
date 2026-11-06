@@ -23,6 +23,21 @@ WHERE iAuthLvl = 0 AND Amount > 50.00;
 PRINT 'Backfilled [iAuthLvl] in [t_Header].';
 GO
 
+-- 1b. Ensure iCycle column exists in t_Authdata and t_ApprovalHistory
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('t_Authdata') AND name = 'iCycle')
+BEGIN
+    ALTER TABLE t_Authdata ADD iCycle INT NOT NULL CONSTRAINT DF_t_Authdata_iCycle DEFAULT 1;
+    PRINT 'Added [iCycle] column to [t_Authdata].';
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('t_ApprovalHistory') AND name = 'iCycle')
+BEGIN
+    ALTER TABLE t_ApprovalHistory ADD iCycle INT NOT NULL CONSTRAINT DF_t_ApprovalHistory_iCycle DEFAULT 1;
+    PRINT 'Added [iCycle] column to [t_ApprovalHistory].';
+END
+GO
+
 -- 2. Ensure iReadStatus column exists in t_Authdata
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('t_Authdata') AND name = 'iReadStatus')
 BEGIN
@@ -233,12 +248,12 @@ BEGIN
 
         -- Result Set 1: Header information
         SELECT
-            h.iHeaderId,
+            CAST(h.iHeaderId AS INT) AS iHeaderId,
             h.Svoucherno,
             h.dDate,
             h.sNarration,
             h.Amount,
-            h.iAuthStatus,
+            CAST(h.iAuthStatus AS INT) AS iAuthStatus,
             CASE h.iAuthStatus
                 WHEN 0 THEN N'Pending'
                 WHEN 1 THEN N'Approved'
@@ -247,13 +262,13 @@ BEGIN
             END AS AuthStatusDescription,
             h.dPostDate,
             h.CreatedDate,
-            h.CreatedBy,
+            CAST(h.CreatedBy AS INT) AS CreatedBy,
             uCreator.Username AS CreatedByUsername,
-            ISNULL(h.iAuthLvl, dbo.fn_GetVoucherApprovalLevel(h.Amount)) AS WorkflowLevel,
-            curStep.iStepOrder AS CurrentPendingStepOrder,
-            curStep.iUser AS CurrentPendingUserId,
+            CAST(ISNULL(h.iAuthLvl, dbo.fn_GetVoucherApprovalLevel(h.Amount)) AS INT) AS WorkflowLevel,
+            CAST(curStep.iStepOrder AS INT) AS CurrentPendingStepOrder,
+            CAST(curStep.iUser AS INT) AS CurrentPendingUserId,
             curUser.Username AS CurrentPendingUsername,
-            @MaxCycle AS CurrentCycle
+            CAST(@MaxCycle AS INT) AS CurrentCycle
         FROM t_Header h
         LEFT JOIN M_Users uCreator ON h.CreatedBy = uCreator.UserId
         OUTER APPLY (
@@ -278,18 +293,18 @@ BEGIN
 
         -- Result Set 2: Approval Slots for the active cycle
         SELECT
-            a.iAuthId,
-            a.iHeaderId,
-            a.iAlerttype,
-            a.iLevel,
-            a.iStepOrder,
-            a.iUserType,
-            a.iUser,
+            CAST(a.iAuthId AS INT) AS iAuthId,
+            CAST(a.iHeaderId AS INT) AS iHeaderId,
+            CAST(a.iAlerttype AS INT) AS iAlerttype,
+            CAST(a.iLevel AS INT) AS iLevel,
+            CAST(a.iStepOrder AS INT) AS iStepOrder,
+            CAST(a.iUserType AS INT) AS iUserType,
+            CAST(a.iUser AS INT) AS iUser,
             u.Username,
             u.Username AS AssignedUsername,
             a.sAlerts,
             a.sUsercomments,
-            a.iStatus,
+            CAST(a.iStatus AS INT) AS iStatus,
             CASE a.iStatus
                 WHEN 0 THEN N'Pending'
                 WHEN 1 THEN N'Approved'
@@ -297,7 +312,7 @@ BEGIN
                 ELSE N'Unknown'
             END AS StepStatusDescription,
             a.dActionDate,
-            a.iActionedBy,
+            CAST(a.iActionedBy AS INT) AS iActionedBy,
             actUser.Username AS ActionedByUsername,
             CASE 
                 WHEN a.iStatus = 0 AND NOT EXISTS (
@@ -310,7 +325,7 @@ BEGIN
                 ) THEN 1
                 ELSE 0
             END AS IsCurrentActiveStage,
-            a.iCycle
+            CAST(a.iCycle AS INT) AS iCycle
         FROM t_Authdata a
         LEFT JOIN M_Users u ON a.iUser = u.UserId
         LEFT JOIN M_Users actUser ON a.iActionedBy = actUser.UserId
@@ -321,18 +336,18 @@ BEGIN
 
         -- Result Set 3: Notifications
         SELECT
-            a.iAuthId,
-            a.iHeaderId,
-            a.iAlerttype,
-            a.iLevel,
-            a.iUser,
+            CAST(a.iAuthId AS INT) AS iAuthId,
+            CAST(a.iHeaderId AS INT) AS iHeaderId,
+            CAST(a.iAlerttype AS INT) AS iAlerttype,
+            CAST(a.iLevel AS INT) AS iLevel,
+            CAST(a.iUser AS INT) AS iUser,
             u.Username,
             a.sAlerts,
             a.sUsercomments,
-            a.iStatus,
-            a.iReadStatus,
+            CAST(a.iStatus AS INT) AS iStatus,
+            CAST(a.iReadStatus AS INT) AS iReadStatus,
             a.dActionDate,
-            a.iCycle
+            CAST(a.iCycle AS INT) AS iCycle
         FROM t_Authdata a
         LEFT JOIN M_Users u ON a.iUser = u.UserId
         WHERE a.iHeaderId = @ActualHeaderId
@@ -341,16 +356,16 @@ BEGIN
 
         -- Result Set 4: Full Audit History
         SELECT
-            h.iHistoryId,
-            h.iHeaderId,
-            h.iLevel,
-            h.iStepOrder,
-            h.iActionUser,
+            CAST(h.iHistoryId AS INT) AS iHistoryId,
+            CAST(h.iHeaderId AS INT) AS iHeaderId,
+            CAST(h.iLevel AS INT) AS iLevel,
+            CAST(h.iStepOrder AS INT) AS iStepOrder,
+            CAST(h.iActionUser AS INT) AS iActionUser,
             u.Username AS ActionUsername,
             h.sAction,
             h.sComments,
             h.dActionDate,
-            h.iCycle
+            CAST(h.iCycle AS INT) AS iCycle
         FROM t_ApprovalHistory h
         LEFT JOIN M_Users u ON h.iActionUser = u.UserId
         WHERE h.iHeaderId = @ActualHeaderId
@@ -550,20 +565,20 @@ BEGIN
             THROW 50006, N'User does not exist or is inactive.', 1;
 
         SELECT
-            h.iHeaderId,
+            CAST(h.iHeaderId AS INT) AS iHeaderId,
             h.Svoucherno,
             h.dDate,
             h.sNarration,
             h.Amount,
-            h.iAuthStatus,
+            CAST(h.iAuthStatus AS INT) AS iAuthStatus,
             h.CreatedDate,
             uCreator.Username AS CreatedByUsername,
-            ISNULL(h.iAuthLvl, dbo.fn_GetVoucherApprovalLevel(h.Amount)) AS WorkflowLevel,
-            a.iAuthId,
-            a.iLevel,
-            a.iStepOrder,
+            CAST(ISNULL(h.iAuthLvl, dbo.fn_GetVoucherApprovalLevel(h.Amount)) AS INT) AS WorkflowLevel,
+            CAST(a.iAuthId AS INT) AS iAuthId,
+            CAST(a.iLevel AS INT) AS iLevel,
+            CAST(a.iStepOrder AS INT) AS iStepOrder,
             a.sAlerts,
-            a.iStatus AS AssignmentStatus
+            CAST(a.iStatus AS INT) AS AssignmentStatus
         FROM t_Header h
         INNER JOIN t_Authdata a ON h.iHeaderId = a.iHeaderId
         LEFT JOIN M_Users uCreator ON h.CreatedBy = uCreator.UserId
@@ -904,23 +919,23 @@ BEGIN
         DECLARE @NormalizedFilter NVARCHAR(20) = UPPER(LTRIM(RTRIM(ISNULL(@Filter, N'ALL'))));
 
         SELECT
-            a.iAuthId,
-            a.iHeaderId,
+            CAST(a.iAuthId AS INT) AS iAuthId,
+            CAST(a.iHeaderId AS INT) AS iHeaderId,
             h.Svoucherno,
             h.dDate,
             h.Amount,
-            h.iAuthStatus,
+            CAST(h.iAuthStatus AS INT) AS iAuthStatus,
             CASE h.iAuthStatus
                 WHEN 0 THEN N'Pending'
                 WHEN 1 THEN N'Approved'
                 WHEN 2 THEN N'Rejected'
                 ELSE N'Unknown'
             END AS HeaderStatusDescription,
-            a.iLevel,
+            CAST(a.iLevel AS INT) AS iLevel,
             a.sAlerts,
             a.sUsercomments,
-            a.iStatus,
-            a.iReadStatus,
+            CAST(a.iStatus AS INT) AS iStatus,
+            CAST(a.iReadStatus AS INT) AS iReadStatus,
             h.CreatedDate,
             uCreator.Username AS CreatedByUsername,
             a.dActionDate,
@@ -1103,13 +1118,13 @@ BEGIN
     IF @NormalizedAction IN (N'GET', N'GET_POLICIES')
     BEGIN
         SELECT 
-            iLevel,
+            CAST(iLevel AS INT) AS iLevel,
             sLevelName,
             mMinAmount,
             mMaxAmount,
             sApproverDescription,
             sPolicyDescription,
-            iRequiredApprovers
+            CAST(iRequiredApprovers AS INT) AS iRequiredApprovers
         FROM t_ApprovalMatrixPolicy
         ORDER BY iLevel ASC;
         RETURN;
@@ -1371,10 +1386,10 @@ BEGIN
     ELSE IF @NormalizedAction IN (N'GET_ALL', N'GET_USERS')
     BEGIN
         SELECT
-            UserId,
+            CAST(UserId AS INT) AS UserId,
             Username,
             Email,
-            UserRole,
+            CAST(UserRole AS INT) AS UserRole,
             Bactive,
             CreatedDate,
             LastLoginDate

@@ -35,20 +35,20 @@ namespace ApprovalWorkflow.Services
             {
                 items.Add(new PendingApprovalItem
                 {
-                    HeaderId = reader.GetInt32(reader.GetOrdinal("iHeaderId")),
+                    HeaderId = reader.GetIntSafe("iHeaderId"),
                     VoucherNo = reader.GetString(reader.GetOrdinal("Svoucherno")),
                     Date = reader.GetDateTime(reader.GetOrdinal("dDate")),
                     Narration = reader.IsDBNull(reader.GetOrdinal("sNarration")) ? null : reader.GetString(reader.GetOrdinal("sNarration")),
                     Amount = reader.GetDecimal(reader.GetOrdinal("Amount")),
-                    AuthStatus = reader.GetInt32(reader.GetOrdinal("iAuthStatus")),
+                    AuthStatus = reader.GetIntSafe("iAuthStatus"),
                     CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
                     CreatedByUsername = reader.IsDBNull(reader.GetOrdinal("CreatedByUsername")) ? null : reader.GetString(reader.GetOrdinal("CreatedByUsername")),
-                    WorkflowLevel = reader.GetInt32(reader.GetOrdinal("WorkflowLevel")),
-                    AuthId = reader.GetInt32(reader.GetOrdinal("iAuthId")),
-                    Level = reader.GetInt32(reader.GetOrdinal("iLevel")),
-                    StepOrder = reader.GetInt32(reader.GetOrdinal("iStepOrder")),
+                    WorkflowLevel = reader.GetIntSafe("WorkflowLevel"),
+                    AuthId = reader.GetIntSafe("iAuthId"),
+                    Level = reader.GetIntSafe("iLevel"),
+                    StepOrder = reader.GetIntSafe("iStepOrder"),
                     Alerts = reader.IsDBNull(reader.GetOrdinal("sAlerts")) ? null : reader.GetString(reader.GetOrdinal("sAlerts")),
-                    AssignmentStatus = reader.GetInt32(reader.GetOrdinal("AssignmentStatus"))
+                    AssignmentStatus = reader.GetIntSafe("AssignmentStatus")
                 });
             }
 
@@ -164,27 +164,27 @@ namespace ApprovalWorkflow.Services
                 try
                 {
                     int rOrd = reader.GetOrdinal("iReadStatus");
-                    if (!reader.IsDBNull(rOrd)) readStatusVal = reader.GetInt32(rOrd);
+                    if (!reader.IsDBNull(rOrd)) readStatusVal = reader.GetIntSafe(rOrd);
                 }
                 catch
                 {
-                    if (reader.GetInt32(reader.GetOrdinal("iStatus")) == 3) readStatusVal = 1;
+                    if (reader.GetIntSafe("iStatus") == 3) readStatusVal = 1;
                 }
                 var actionedByUsernameOrdinal = reader.GetOrdinal("ActionedByUsername");
 
                 items.Add(new NotificationItem
                 {
-                    AuthId = reader.GetInt32(reader.GetOrdinal("iAuthId")),
-                    HeaderId = reader.GetInt32(reader.GetOrdinal("iHeaderId")),
+                    AuthId = reader.GetIntSafe("iAuthId"),
+                    HeaderId = reader.GetIntSafe("iHeaderId"),
                     VoucherNo = reader.GetString(reader.GetOrdinal("Svoucherno")),
                     Date = reader.GetDateTime(reader.GetOrdinal("dDate")),
                     Amount = reader.GetDecimal(reader.GetOrdinal("Amount")),
-                    AuthStatus = reader.GetInt32(reader.GetOrdinal("iAuthStatus")),
+                    AuthStatus = reader.GetIntSafe("iAuthStatus"),
                     HeaderStatusDescription = reader.GetString(reader.GetOrdinal("HeaderStatusDescription")),
-                    Level = reader.GetInt32(reader.GetOrdinal("iLevel")),
+                    Level = reader.GetIntSafe("iLevel"),
                     Alerts = reader.IsDBNull(reader.GetOrdinal("sAlerts")) ? null : reader.GetString(reader.GetOrdinal("sAlerts")),
                     UserComments = reader.IsDBNull(reader.GetOrdinal("sUsercomments")) ? null : reader.GetString(reader.GetOrdinal("sUsercomments")),
-                    Status = reader.GetInt32(reader.GetOrdinal("iStatus")),
+                    Status = reader.GetIntSafe("iStatus"),
                     ReadStatus = readStatusVal,
                     CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
                     CreatedByUsername = reader.IsDBNull(reader.GetOrdinal("CreatedByUsername")) ? null : reader.GetString(reader.GetOrdinal("CreatedByUsername")),
@@ -339,10 +339,10 @@ namespace ApprovalWorkflow.Services
             {
                 list.Add(new User
                 {
-                    UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
+                    UserId = reader.GetIntSafe("UserId"),
                     Username = reader.GetString(reader.GetOrdinal("Username")),
-                    Email = reader.GetString(reader.GetOrdinal("Email")),
-                    UserRole = reader.IsDBNull(reader.GetOrdinal("UserRole")) ? null : reader.GetInt32(reader.GetOrdinal("UserRole")),
+                    Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? string.Empty : reader.GetString(reader.GetOrdinal("Email")),
+                    UserRole = reader.GetNullableIntSafe("UserRole"),
                     Bactive = reader.IsDBNull(reader.GetOrdinal("Bactive")) ? null : reader.GetBoolean(reader.GetOrdinal("Bactive")),
                     CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
                     LastLoginDate = reader.IsDBNull(reader.GetOrdinal("LastLoginDate")) ? null : reader.GetDateTime(reader.GetOrdinal("LastLoginDate"))
@@ -430,13 +430,13 @@ namespace ApprovalWorkflow.Services
                 {
                     policies.Add(new ApprovalMatrixPolicy
                     {
-                        Level = reader.GetInt32(reader.GetOrdinal("iLevel")),
+                        Level = reader.GetIntSafe("iLevel"),
                         LevelName = reader.GetString(reader.GetOrdinal("sLevelName")),
                         MinAmount = reader.GetDecimal(reader.GetOrdinal("mMinAmount")),
                         MaxAmount = reader.IsDBNull(reader.GetOrdinal("mMaxAmount")) ? null : reader.GetDecimal(reader.GetOrdinal("mMaxAmount")),
                         ApproverDescription = reader.GetString(reader.GetOrdinal("sApproverDescription")),
                         PolicyDescription = reader.GetString(reader.GetOrdinal("sPolicyDescription")),
-                        RequiredApprovers = reader.GetInt32(reader.GetOrdinal("iRequiredApprovers"))
+                        RequiredApprovers = reader.GetIntSafe("iRequiredApprovers")
                     });
                 }
             }

@@ -160,19 +160,19 @@ namespace ApprovalWorkflow.Services
             {
                 viewModel.Header = new Voucher
                 {
-                    HeaderId = reader.GetInt32(reader.GetOrdinal("iHeaderId")),
+                    HeaderId = reader.GetIntSafe("iHeaderId"),
                     VoucherNo = reader.GetString(reader.GetOrdinal("Svoucherno")),
                     Date = reader.GetDateTime(reader.GetOrdinal("dDate")),
                     Narration = reader.IsDBNull(reader.GetOrdinal("sNarration")) ? null : reader.GetString(reader.GetOrdinal("sNarration")),
                     Amount = reader.GetDecimal(reader.GetOrdinal("Amount")),
-                    AuthStatus = reader.GetInt32(reader.GetOrdinal("iAuthStatus")),
+                    AuthStatus = reader.GetIntSafe("iAuthStatus"),
                     PostDate = reader.IsDBNull(reader.GetOrdinal("dPostDate")) ? null : reader.GetDateTime(reader.GetOrdinal("dPostDate")),
                     CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
-                    CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetInt32(reader.GetOrdinal("CreatedBy")),
+                    CreatedBy = reader.GetNullableIntSafe("CreatedBy"),
                     CreatedByUsername = reader.IsDBNull(reader.GetOrdinal("CreatedByUsername")) ? null : reader.GetString(reader.GetOrdinal("CreatedByUsername")),
-                    WorkflowLevel = reader.GetInt32(reader.GetOrdinal("WorkflowLevel")),
-                    CurrentPendingStepOrder = reader.IsDBNull(reader.GetOrdinal("CurrentPendingStepOrder")) ? null : reader.GetInt32(reader.GetOrdinal("CurrentPendingStepOrder")),
-                    CurrentPendingUserId = reader.IsDBNull(reader.GetOrdinal("CurrentPendingUserId")) ? null : reader.GetInt32(reader.GetOrdinal("CurrentPendingUserId")),
+                    WorkflowLevel = reader.GetIntSafe("WorkflowLevel"),
+                    CurrentPendingStepOrder = reader.GetNullableIntSafe("CurrentPendingStepOrder"),
+                    CurrentPendingUserId = reader.GetNullableIntSafe("CurrentPendingUserId"),
                     CurrentPendingUsername = reader.IsDBNull(reader.GetOrdinal("CurrentPendingUsername")) ? null : reader.GetString(reader.GetOrdinal("CurrentPendingUsername"))
                 };
 
@@ -181,7 +181,7 @@ namespace ApprovalWorkflow.Services
                     int cycleOrdinal = reader.GetOrdinal("CurrentCycle");
                     if (!reader.IsDBNull(cycleOrdinal))
                     {
-                        viewModel.CurrentCycle = reader.GetInt32(cycleOrdinal);
+                        viewModel.CurrentCycle = reader.GetIntSafe(cycleOrdinal);
                     }
                 }
                 catch { }
@@ -218,19 +218,19 @@ namespace ApprovalWorkflow.Services
 
                     var slot = new ApprovalSlot
                     {
-                        AuthId = reader.GetInt32(reader.GetOrdinal("iAuthId")),
-                        HeaderId = reader.GetInt32(reader.GetOrdinal("iHeaderId")),
-                        AlertType = reader.GetInt32(reader.GetOrdinal("iAlerttype")),
-                        Level = reader.GetInt32(reader.GetOrdinal("iLevel")),
-                        AssignedUserId = reader.GetInt32(reader.GetOrdinal("iUser")),
+                        AuthId = reader.GetIntSafe("iAuthId"),
+                        HeaderId = reader.GetIntSafe("iHeaderId"),
+                        AlertType = reader.GetIntSafe("iAlerttype"),
+                        Level = reader.GetIntSafe("iLevel"),
+                        AssignedUserId = reader.GetIntSafe("iUser"),
                         AssignedUsername = usernameOrd >= 0 && !reader.IsDBNull(usernameOrd) ? reader.GetString(usernameOrd) : string.Empty,
                         Alerts = reader.IsDBNull(reader.GetOrdinal("sAlerts")) ? null : reader.GetString(reader.GetOrdinal("sAlerts")),
                         UserComments = reader.IsDBNull(reader.GetOrdinal("sUsercomments")) ? null : reader.GetString(reader.GetOrdinal("sUsercomments")),
-                        StepOrder = reader.GetInt32(reader.GetOrdinal("iStepOrder")),
-                        Status = reader.GetInt32(reader.GetOrdinal("iStatus")),
+                        StepOrder = reader.GetIntSafe("iStepOrder"),
+                        Status = reader.GetIntSafe("iStatus"),
                         StepStatusDescription = reader.GetString(reader.GetOrdinal("StepStatusDescription")),
                         ActionDate = reader.IsDBNull(reader.GetOrdinal("dActionDate")) ? null : reader.GetDateTime(reader.GetOrdinal("dActionDate")),
-                        ActionedBy = reader.IsDBNull(reader.GetOrdinal("iActionedBy")) ? null : reader.GetInt32(reader.GetOrdinal("iActionedBy")),
+                        ActionedBy = reader.GetNullableIntSafe("iActionedBy"),
                         ActionedByUsername = reader.IsDBNull(reader.GetOrdinal("ActionedByUsername")) ? null : reader.GetString(reader.GetOrdinal("ActionedByUsername")),
                         IsCurrentActiveStage = isStageActive
                     };
@@ -238,7 +238,7 @@ namespace ApprovalWorkflow.Services
                     try
                     {
                         int cOrd = reader.GetOrdinal("iCycle");
-                        if (!reader.IsDBNull(cOrd)) slot.Cycle = reader.GetInt32(cOrd);
+                        if (!reader.IsDBNull(cOrd)) slot.Cycle = reader.GetIntSafe(cOrd);
                     }
                     catch { }
 
@@ -253,22 +253,22 @@ namespace ApprovalWorkflow.Services
                 {
                     var notif = new NotificationItem
                     {
-                        AuthId = reader.GetInt32(reader.GetOrdinal("iAuthId")),
-                        HeaderId = reader.GetInt32(reader.GetOrdinal("iHeaderId")),
-                        Level = reader.GetInt32(reader.GetOrdinal("iLevel")),
+                        AuthId = reader.GetIntSafe("iAuthId"),
+                        HeaderId = reader.GetIntSafe("iHeaderId"),
+                        Level = reader.GetIntSafe("iLevel"),
                         Alerts = reader.IsDBNull(reader.GetOrdinal("sAlerts")) ? null : reader.GetString(reader.GetOrdinal("sAlerts")),
                         UserComments = reader.IsDBNull(reader.GetOrdinal("sUsercomments")) ? null : reader.GetString(reader.GetOrdinal("sUsercomments")),
-                        Status = reader.GetInt32(reader.GetOrdinal("iStatus")),
+                        Status = reader.GetIntSafe("iStatus"),
                         ReadStatus = 0,
                         ActionDate = reader.IsDBNull(reader.GetOrdinal("dActionDate")) ? null : reader.GetDateTime(reader.GetOrdinal("dActionDate")),
-                        RecipientUserId = reader.GetInt32(reader.GetOrdinal("iUser")),
+                        RecipientUserId = reader.GetIntSafe("iUser"),
                         RecipientUsername = reader.GetString(reader.GetOrdinal("Username"))
                     };
 
                     try
                     {
                         int rOrd = reader.GetOrdinal("iReadStatus");
-                        if (!reader.IsDBNull(rOrd)) notif.ReadStatus = reader.GetInt32(rOrd);
+                        if (!reader.IsDBNull(rOrd)) notif.ReadStatus = reader.GetIntSafe(rOrd);
                     }
                     catch
                     {
@@ -278,7 +278,7 @@ namespace ApprovalWorkflow.Services
                     try
                     {
                         int cOrd = reader.GetOrdinal("iCycle");
-                        if (!reader.IsDBNull(cOrd)) notif.Cycle = reader.GetInt32(cOrd);
+                        if (!reader.IsDBNull(cOrd)) notif.Cycle = reader.GetIntSafe(cOrd);
                     }
                     catch { }
 
@@ -293,11 +293,11 @@ namespace ApprovalWorkflow.Services
                 {
                     var hist = new ApprovalHistoryItem
                     {
-                        HistoryId = reader.GetInt32(reader.GetOrdinal("iHistoryId")),
-                        HeaderId = reader.GetInt32(reader.GetOrdinal("iHeaderId")),
-                        Level = reader.GetInt32(reader.GetOrdinal("iLevel")),
-                        StepOrder = reader.GetInt32(reader.GetOrdinal("iStepOrder")),
-                        ActionUser = reader.GetInt32(reader.GetOrdinal("iActionUser")),
+                        HistoryId = reader.GetIntSafe("iHistoryId"),
+                        HeaderId = reader.GetIntSafe("iHeaderId"),
+                        Level = reader.GetIntSafe("iLevel"),
+                        StepOrder = reader.GetIntSafe("iStepOrder"),
+                        ActionUser = reader.GetIntSafe("iActionUser"),
                         ActionUsername = reader.GetString(reader.GetOrdinal("ActionUsername")),
                         Action = reader.GetString(reader.GetOrdinal("sAction")),
                         Comments = reader.IsDBNull(reader.GetOrdinal("sComments")) ? null : reader.GetString(reader.GetOrdinal("sComments")),
@@ -307,7 +307,7 @@ namespace ApprovalWorkflow.Services
                     try
                     {
                         int cOrd = reader.GetOrdinal("iCycle");
-                        if (!reader.IsDBNull(cOrd)) hist.Cycle = reader.GetInt32(cOrd);
+                        if (!reader.IsDBNull(cOrd)) hist.Cycle = reader.GetIntSafe(cOrd);
                     }
                     catch { }
 
@@ -322,26 +322,26 @@ namespace ApprovalWorkflow.Services
                 {
                     var allSlot = new ApprovalSlot
                     {
-                        AuthId = reader.GetInt32(reader.GetOrdinal("iAuthId")),
-                        HeaderId = reader.GetInt32(reader.GetOrdinal("iHeaderId")),
-                        AlertType = reader.GetInt32(reader.GetOrdinal("iAlerttype")),
-                        Level = reader.GetInt32(reader.GetOrdinal("iLevel")),
-                        AssignedUserId = reader.GetInt32(reader.GetOrdinal("iUser")),
+                        AuthId = reader.GetIntSafe("iAuthId"),
+                        HeaderId = reader.GetIntSafe("iHeaderId"),
+                        AlertType = reader.GetIntSafe("iAlerttype"),
+                        Level = reader.GetIntSafe("iLevel"),
+                        AssignedUserId = reader.GetIntSafe("iUser"),
                         AssignedUsername = reader.GetString(reader.GetOrdinal("Username")),
                         Alerts = reader.IsDBNull(reader.GetOrdinal("sAlerts")) ? null : reader.GetString(reader.GetOrdinal("sAlerts")),
                         UserComments = reader.IsDBNull(reader.GetOrdinal("sUsercomments")) ? null : reader.GetString(reader.GetOrdinal("sUsercomments")),
-                        StepOrder = reader.GetInt32(reader.GetOrdinal("iStepOrder")),
-                        Status = reader.GetInt32(reader.GetOrdinal("iStatus")),
+                        StepOrder = reader.GetIntSafe("iStepOrder"),
+                        Status = reader.GetIntSafe("iStatus"),
                         StepStatusDescription = reader.GetString(reader.GetOrdinal("StepStatusDescription")),
                         ActionDate = reader.IsDBNull(reader.GetOrdinal("dActionDate")) ? null : reader.GetDateTime(reader.GetOrdinal("dActionDate")),
-                        ActionedBy = reader.IsDBNull(reader.GetOrdinal("iActionedBy")) ? null : reader.GetInt32(reader.GetOrdinal("iActionedBy")),
+                        ActionedBy = reader.GetNullableIntSafe("iActionedBy"),
                         ActionedByUsername = reader.IsDBNull(reader.GetOrdinal("ActionedByUsername")) ? null : reader.GetString(reader.GetOrdinal("ActionedByUsername"))
                     };
 
                     try
                     {
                         int cOrd = reader.GetOrdinal("iCycle");
-                        if (!reader.IsDBNull(cOrd)) allSlot.Cycle = reader.GetInt32(cOrd);
+                        if (!reader.IsDBNull(cOrd)) allSlot.Cycle = reader.GetIntSafe(cOrd);
                     }
                     catch { }
 
@@ -390,18 +390,18 @@ namespace ApprovalWorkflow.Services
             {
                 list.Add(new Voucher
                 {
-                    HeaderId = reader.GetInt32(reader.GetOrdinal("iHeaderId")),
+                    HeaderId = reader.GetIntSafe("iHeaderId"),
                     VoucherNo = reader.GetString(reader.GetOrdinal("Svoucherno")),
                     Date = reader.GetDateTime(reader.GetOrdinal("dDate")),
                     Narration = reader.IsDBNull(reader.GetOrdinal("sNarration")) ? null : reader.GetString(reader.GetOrdinal("sNarration")),
                     Amount = reader.GetDecimal(reader.GetOrdinal("Amount")),
-                    AuthStatus = reader.GetInt32(reader.GetOrdinal("iAuthStatus")),
+                    AuthStatus = reader.GetIntSafe("iAuthStatus"),
                     StatusDescription = reader.GetString(reader.GetOrdinal("AuthStatusDescription")),
                     PostDate = reader.IsDBNull(reader.GetOrdinal("dPostDate")) ? null : reader.GetDateTime(reader.GetOrdinal("dPostDate")),
                     CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
-                    CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy")) ? null : reader.GetInt32(reader.GetOrdinal("CreatedBy")),
+                    CreatedBy = reader.GetNullableIntSafe("CreatedBy"),
                     CreatedByUsername = reader.IsDBNull(reader.GetOrdinal("CreatedByUsername")) ? null : reader.GetString(reader.GetOrdinal("CreatedByUsername")),
-                    WorkflowLevel = reader.GetInt32(reader.GetOrdinal("WorkflowLevel"))
+                    WorkflowLevel = reader.GetIntSafe("WorkflowLevel")
                 });
             }
 
