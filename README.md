@@ -28,17 +28,12 @@ The .NET web layer serves as a responsive, secure presentation interface that in
 +-------------------------------------------------------------------------+
 |               Microsoft SQL Server Express (ApprovalWorkflowDB)         |
 |                                                                         |
-|   Unified Workflow Engine:                                              |
-|   • dbo.usp_ApprovalWorkflow     (Unified SAVE, APPROVE, REJECT actions)|
-|                                                                         |
-|   Specialized Stored Procedures:                                        |
-|   • dbo.usp_SaveVoucher          (Transactional creation & assignments) |
-|   • dbo.usp_GetPendingApprovals  (Sequential queue for active user)     |
-|   • dbo.usp_GetVoucherDetails    (Header, 4-cell panel, history, notifs)|
-|   • dbo.usp_ApproveVoucher       (UPDLOCK concurrency & stage advance)  |
-|   • dbo.usp_RejectVoucher        (Atomic rejection & termination)       |
-|   • dbo.usp_GetNotifications     (Isolated notification query)          |
-|   • dbo.usp_ValidateUserLogin    (Credential & active user validation)  |
+|   5 Consolidated Domain Stored Procedures:                                  |
+|   • dbo.usp_Voucher_Lifecycle    (SAVE, GET_DETAILS, RESUBMIT)              |
+|   • dbo.usp_Workflow_Engine      (APPROVE, REJECT, GET_PENDING)             |
+|   • dbo.usp_Notification_Manager (GET_NOTIFICATIONS, MARK_STATUS, SEND_CUSTOM)|
+|   • dbo.usp_ApprovalMatrix_Admin (GET_POLICIES, UPDATE_POLICY, XML IO)      |
+|   • dbo.usp_User_Security        (VALIDATE_LOGIN, GET_ALL)                  |
 |                                                                         |
 |   Deterministic Rules & Views:                                          |
 |   • dbo.fn_GetVoucherApprovalLevel (Amount boundary resolution)         |
@@ -88,6 +83,7 @@ The financial amount of each voucher automatically determines its approval level
 - `sNarration` (NVARCHAR(100) NULL): Transaction description.
 - `Amount` (DECIMAL(18,2) NOT NULL): Currency value.
 - `iAuthStatus` (INT NOT NULL): `0` = Pending, `1` = Approved, `2` = Rejected.
+- `iAuthLvl` (INT NOT NULL): Required workflow level (`0` to `4`) based on amount matrix.
 - `dPostDate` (DATE NULL): Recorded on final approval; `NULL` while pending or rejected.
 - `CreatedDate`, `CreatedBy`: Audit metadata.
 
@@ -101,7 +97,8 @@ The financial amount of each voucher automatically determines its approval level
 - `sAlerts` (NVARCHAR(100) NULL): Alert description.
 - `sUsercomments` (NVARCHAR(100) NULL): Decision remarks recorded on action.
 - `iStepOrder` (INT NOT NULL): Sequence position (1, 2, 3, 4).
-- `iStatus` (INT NOT NULL): `0` = Pending, `1` = Approved, `2` = Rejected, `3` = Notified.
+- `iStatus` (INT NOT NULL): `0` = Pending, `1` = Approved, `2` = Rejected.
+- `iReadStatus` (INT NOT NULL): `0` = Unread, `1` = Read (for notifications).
 - `dActionDate` (DATETIME NULL): Timestamp when stage was actioned.
 - `iActionedBy` (INT NULL): User ID who completed the action.
 

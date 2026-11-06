@@ -23,10 +23,11 @@ namespace ApprovalWorkflow.Services
             using var connection = _connectionFactory.CreateConnection();
             await connection.OpenAsync();
 
-            using var command = new SqlCommand("dbo.usp_GetPendingApprovals", connection)
+            using var command = new SqlCommand("dbo.usp_Workflow_Engine", connection)
             {
                 CommandType = CommandType.StoredProcedure
             };
+            command.Parameters.Add("@Action", SqlDbType.NVarChar, 20).Value = "GET_PENDING";
             command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
 
             using var reader = await command.ExecuteReaderAsync();
@@ -61,8 +62,8 @@ namespace ApprovalWorkflow.Services
                 using var connection = _connectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                // Master requirement: Unified usp_ApprovalWorkflow procedure for SAVE, APPROVE, REJECT
-                using var command = new SqlCommand("dbo.usp_ApprovalWorkflow", connection)
+                // Consolidated Domain Procedure: dbo.usp_Workflow_Engine
+                using var command = new SqlCommand("dbo.usp_Workflow_Engine", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -107,8 +108,8 @@ namespace ApprovalWorkflow.Services
                 using var connection = _connectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                // Master requirement: Unified usp_ApprovalWorkflow procedure for SAVE, APPROVE, REJECT
-                using var command = new SqlCommand("dbo.usp_ApprovalWorkflow", connection)
+                // Consolidated Domain Procedure: dbo.usp_Workflow_Engine
+                using var command = new SqlCommand("dbo.usp_Workflow_Engine", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -147,10 +148,11 @@ namespace ApprovalWorkflow.Services
             using var connection = _connectionFactory.CreateConnection();
             await connection.OpenAsync();
 
-            using var command = new SqlCommand("dbo.usp_GetNotifications", connection)
+            using var command = new SqlCommand("dbo.usp_Notification_Manager", connection)
             {
                 CommandType = CommandType.StoredProcedure
             };
+            command.Parameters.Add("@Action", SqlDbType.NVarChar, 20).Value = "GET_NOTIFICATIONS";
             command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
             command.Parameters.Add("@Filter", SqlDbType.NVarChar, 20).Value = string.IsNullOrWhiteSpace(filter) ? "ALL" : filter.Trim().ToUpperInvariant();
 
@@ -158,6 +160,16 @@ namespace ApprovalWorkflow.Services
             while (await reader.ReadAsync())
             {
                 var actionDateOrdinal = reader.GetOrdinal("dActionDate");
+                int readStatusVal = 0;
+                try
+                {
+                    int rOrd = reader.GetOrdinal("iReadStatus");
+                    if (!reader.IsDBNull(rOrd)) readStatusVal = reader.GetInt32(rOrd);
+                }
+                catch
+                {
+                    if (reader.GetInt32(reader.GetOrdinal("iStatus")) == 3) readStatusVal = 1;
+                }
                 var actionedByUsernameOrdinal = reader.GetOrdinal("ActionedByUsername");
 
                 items.Add(new NotificationItem
@@ -173,6 +185,7 @@ namespace ApprovalWorkflow.Services
                     Alerts = reader.IsDBNull(reader.GetOrdinal("sAlerts")) ? null : reader.GetString(reader.GetOrdinal("sAlerts")),
                     UserComments = reader.IsDBNull(reader.GetOrdinal("sUsercomments")) ? null : reader.GetString(reader.GetOrdinal("sUsercomments")),
                     Status = reader.GetInt32(reader.GetOrdinal("iStatus")),
+                    ReadStatus = readStatusVal,
                     CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
                     CreatedByUsername = reader.IsDBNull(reader.GetOrdinal("CreatedByUsername")) ? null : reader.GetString(reader.GetOrdinal("CreatedByUsername")),
                     ActionDate = reader.IsDBNull(actionDateOrdinal) ? null : reader.GetDateTime(actionDateOrdinal),
@@ -204,15 +217,16 @@ namespace ApprovalWorkflow.Services
                 }
 
                 string idString = string.Join(",", idList);
-                int newStatus = isRead ? 3 : 0; // 3 = Read, 0 = Unread
+                int newStatus = isRead ? 1 : 0; // 1 = Read, 0 = Unread
 
                 using var connection = _connectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                using var command = new SqlCommand("dbo.usp_UpdateNotificationStatus", connection)
+                using var command = new SqlCommand("dbo.usp_Notification_Manager", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
+                command.Parameters.Add("@Action", SqlDbType.NVarChar, 20).Value = "MARK_STATUS";
                 command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
                 command.Parameters.Add("@AuthIds", SqlDbType.NVarChar, -1).Value = idString;
                 command.Parameters.Add("@NewStatus", SqlDbType.Int).Value = newStatus;
@@ -236,15 +250,16 @@ namespace ApprovalWorkflow.Services
         {
             try
             {
-                int newStatus = isRead ? 3 : 0;
+                int newStatus = isRead ? 1 : 0;
 
                 using var connection = _connectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                using var command = new SqlCommand("dbo.usp_UpdateNotificationStatus", connection)
+                using var command = new SqlCommand("dbo.usp_Notification_Manager", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
+                command.Parameters.Add("@Action", SqlDbType.NVarChar, 20).Value = "MARK_STATUS";
                 command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
                 command.Parameters.Add("@AuthIds", SqlDbType.NVarChar, -1).Value = "ALL";
                 command.Parameters.Add("@NewStatus", SqlDbType.Int).Value = newStatus;
@@ -276,10 +291,11 @@ namespace ApprovalWorkflow.Services
                 using var connection = _connectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                using var command = new SqlCommand("dbo.usp_SendVoucherNotification", connection)
+                using var command = new SqlCommand("dbo.usp_Notification_Manager", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
+                command.Parameters.Add("@Action", SqlDbType.NVarChar, 20).Value = "SEND_CUSTOM";
                 command.Parameters.Add("@iHeaderId", SqlDbType.Int).Value = headerId;
                 command.Parameters.Add("@ActingUserId", SqlDbType.Int).Value = actingUserId;
                 command.Parameters.Add("@TargetUserId", SqlDbType.Int).Value = targetUserId;
@@ -312,10 +328,11 @@ namespace ApprovalWorkflow.Services
             using var connection = _connectionFactory.CreateConnection();
             await connection.OpenAsync();
 
-            using var command = new SqlCommand("dbo.usp_GetAllUsers", connection)
+            using var command = new SqlCommand("dbo.usp_User_Security", connection)
             {
                 CommandType = CommandType.StoredProcedure
             };
+            command.Parameters.Add("@Action", SqlDbType.NVarChar, 20).Value = "GET_ALL";
 
             using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -348,10 +365,11 @@ namespace ApprovalWorkflow.Services
                 using var connection = _connectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                using var command = new SqlCommand("dbo.usp_ValidateUserLogin", connection)
+                using var command = new SqlCommand("dbo.usp_User_Security", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
+                command.Parameters.Add("@Action", SqlDbType.NVarChar, 20).Value = "VALIDATE_LOGIN";
 
                 command.Parameters.Add("@UsernameOrEmail", SqlDbType.NVarChar, 50).Value = usernameOrEmail.Trim();
                 command.Parameters.Add("@Password", SqlDbType.NVarChar, 256).Value = password;
@@ -401,10 +419,11 @@ namespace ApprovalWorkflow.Services
                 using var connection = _connectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                using var command = new SqlCommand("dbo.usp_GetApprovalMatrixPolicies", connection)
+                using var command = new SqlCommand("dbo.usp_ApprovalMatrix_Admin", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
+                command.Parameters.Add("@Action", SqlDbType.NVarChar, 20).Value = "GET_POLICIES";
 
                 using var reader = await command.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
@@ -436,11 +455,12 @@ namespace ApprovalWorkflow.Services
                 using var connection = _connectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                using var command = new SqlCommand("dbo.usp_UpdateApprovalMatrixPolicy", connection)
+                using var command = new SqlCommand("dbo.usp_ApprovalMatrix_Admin", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
 
+                command.Parameters.Add("@Action", SqlDbType.NVarChar, 20).Value = "UPDATE_POLICY";
                 command.Parameters.AddWithValue("@ActingUserId", actingUserId);
                 command.Parameters.AddWithValue("@Level", level);
                 command.Parameters.AddWithValue("@MinAmount", minAmount);
@@ -556,12 +576,13 @@ namespace ApprovalWorkflow.Services
                 using var connection = _connectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                using var command = new SqlCommand("dbo.usp_ImportApprovalMatrixFromXml", connection)
+                using var command = new SqlCommand("dbo.usp_ApprovalMatrix_Admin", connection)
                 {
                     CommandType    = CommandType.StoredProcedure,
                     CommandTimeout = 30
                 };
 
+                command.Parameters.Add("@Action", SqlDbType.NVarChar, 20).Value = "IMPORT_XML";
                 command.Parameters.AddWithValue("@ActingUserId", actingUserId);
 
                 var xmlParam   = command.Parameters.Add("@XmlData", SqlDbType.Xml);
@@ -594,10 +615,11 @@ namespace ApprovalWorkflow.Services
                 using var connection = _connectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                using var command = new SqlCommand("dbo.usp_ExportApprovalMatrixAsXml", connection)
+                using var command = new SqlCommand("dbo.usp_ApprovalMatrix_Admin", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
+                command.Parameters.Add("@Action", SqlDbType.NVarChar, 20).Value = "EXPORT_XML";
 
                 var raw = await command.ExecuteScalarAsync();
                 if (raw == null || raw == DBNull.Value)

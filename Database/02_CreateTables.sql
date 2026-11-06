@@ -44,6 +44,7 @@ BEGIN
         sNarration   NVARCHAR(100) NULL,
         Amount       DECIMAL(18,2) NOT NULL,
         iAuthStatus  INT NOT NULL CONSTRAINT DF_t_Header_iAuthStatus DEFAULT 0,
+        iAuthLvl     INT NOT NULL CONSTRAINT DF_t_Header_iAuthLvl DEFAULT 0,
         dPostDate    DATE NULL,
         CreatedDate  DATETIME NOT NULL CONSTRAINT DF_t_Header_CreatedDate DEFAULT GETDATE(),
         CreatedBy    INT NULL
@@ -53,13 +54,19 @@ END
 ELSE
 BEGIN
     PRINT 'Table [t_Header] already exists.';
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('t_Header') AND name = 'iAuthLvl')
+    BEGIN
+        ALTER TABLE t_Header ADD iAuthLvl INT NOT NULL CONSTRAINT DF_t_Header_iAuthLvl DEFAULT 0;
+        PRINT 'Added column [iAuthLvl] to [t_Header].';
+    END
 END
 GO
 
 -- 3. Table: t_Authdata (Original table preserved with essential workflow tracking columns)
 -- iAlerttype: 0 = Notification, 1 = Approval Alert
 -- iUserType:  1 = User, 2 = Role, 3 = Employee
--- iStatus:    0 = Pending, 1 = Approved, 2 = Rejected, 3 = Notified / Info
+-- iStatus:    0 = Pending, 1 = Approved, 2 = Rejected
+-- iReadStatus: 0 = Unread, 1 = Read
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 't_Authdata')
 BEGIN
     PRINT 'Creating table [t_Authdata]...';
@@ -74,7 +81,8 @@ BEGIN
         sAlerts        NVARCHAR(100) NULL, -- Alert message / prompt
         sUsercomments  NVARCHAR(100) NULL, -- User comments on action
         iStepOrder     INT NOT NULL CONSTRAINT DF_t_Authdata_iStepOrder DEFAULT 1, -- Sequential stage order (1..4)
-        iStatus        INT NOT NULL CONSTRAINT DF_t_Authdata_iStatus DEFAULT 0,    -- 0 = Pending, 1 = Approved, 2 = Rejected, 3 = Notified
+        iStatus        INT NOT NULL CONSTRAINT DF_t_Authdata_iStatus DEFAULT 0,    -- 0 = Pending, 1 = Approved, 2 = Rejected
+        iReadStatus    INT NOT NULL CONSTRAINT DF_t_Authdata_iReadStatus DEFAULT 0, -- 0 = Unread, 1 = Read
         dActionDate    DATETIME NULL,      -- Timestamp when approval/rejection was recorded
         iActionedBy    INT NULL            -- The actual UserId who performed the action
     );
@@ -83,6 +91,11 @@ END
 ELSE
 BEGIN
     PRINT 'Table [t_Authdata] already exists.';
+    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('t_Authdata') AND name = 'iReadStatus')
+    BEGIN
+        ALTER TABLE t_Authdata ADD iReadStatus INT NOT NULL CONSTRAINT DF_t_Authdata_iReadStatus DEFAULT 0;
+        PRINT 'Added column [iReadStatus] to [t_Authdata].';
+    END
 END
 GO
 

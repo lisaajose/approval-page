@@ -23,8 +23,8 @@ namespace ApprovalWorkflow.Services
                 using var connection = _connectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                // Master requirement: Unified usp_ApprovalWorkflow procedure for SAVE, APPROVE, REJECT
-                using var command = new SqlCommand("dbo.usp_ApprovalWorkflow", connection)
+                // Consolidated Domain Procedure: dbo.usp_Voucher_Lifecycle
+                using var command = new SqlCommand("dbo.usp_Voucher_Lifecycle", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -102,10 +102,11 @@ namespace ApprovalWorkflow.Services
                 using var connection = _connectionFactory.CreateConnection();
                 await connection.OpenAsync();
 
-                using var command = new SqlCommand("dbo.usp_ResubmitVoucher", connection)
+                using var command = new SqlCommand("dbo.usp_Voucher_Lifecycle", connection)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
+                command.Parameters.Add("@Action", SqlDbType.NVarChar, 20).Value = "RESUBMIT";
                 command.Parameters.Add("@iHeaderId", SqlDbType.Int).Value = model.HeaderId;
                 command.Parameters.Add("@ActingUserId", SqlDbType.Int).Value = actingUserId;
                 command.Parameters.Add("@dDate", SqlDbType.Date).Value = model.Date;
@@ -145,10 +146,11 @@ namespace ApprovalWorkflow.Services
             using var connection = _connectionFactory.CreateConnection();
             await connection.OpenAsync();
 
-            using var command = new SqlCommand("dbo.usp_GetVoucherDetails", connection)
+            using var command = new SqlCommand("dbo.usp_Voucher_Lifecycle", connection)
             {
                 CommandType = CommandType.StoredProcedure
             };
+            command.Parameters.Add("@Action", SqlDbType.NVarChar, 20).Value = "GET_DETAILS";
             command.Parameters.Add("@iHeaderId", SqlDbType.Int).Value = headerId;
 
             using var reader = await command.ExecuteReaderAsync();
@@ -190,6 +192,30 @@ namespace ApprovalWorkflow.Services
             {
                 while (await reader.ReadAsync())
                 {
+                    int usernameOrd = -1;
+                    try { usernameOrd = reader.GetOrdinal("Username"); } catch { }
+                    if (usernameOrd < 0) { try { usernameOrd = reader.GetOrdinal("AssignedUsername"); } catch { } }
+
+                    bool isStageActive = false;
+                    try
+                    {
+                        int stageOrd = reader.GetOrdinal("IsCurrentActiveStage");
+                        if (!reader.IsDBNull(stageOrd))
+                        {
+                            object val = reader.GetValue(stageOrd);
+                            isStageActive = val switch
+                            {
+                                bool b => b,
+                                int i => i == 1,
+                                byte bt => bt == 1,
+                                short s => s == 1,
+                                long l => l == 1,
+                                _ => Convert.ToInt32(val) == 1
+                            };
+                        }
+                    }
+                    catch { }
+
                     var slot = new ApprovalSlot
                     {
                         AuthId = reader.GetInt32(reader.GetOrdinal("iAuthId")),
@@ -197,7 +223,7 @@ namespace ApprovalWorkflow.Services
                         AlertType = reader.GetInt32(reader.GetOrdinal("iAlerttype")),
                         Level = reader.GetInt32(reader.GetOrdinal("iLevel")),
                         AssignedUserId = reader.GetInt32(reader.GetOrdinal("iUser")),
-                        AssignedUsername = reader.GetString(reader.GetOrdinal("Username")),
+                        AssignedUsername = usernameOrd >= 0 && !reader.IsDBNull(usernameOrd) ? reader.GetString(usernameOrd) : string.Empty,
                         Alerts = reader.IsDBNull(reader.GetOrdinal("sAlerts")) ? null : reader.GetString(reader.GetOrdinal("sAlerts")),
                         UserComments = reader.IsDBNull(reader.GetOrdinal("sUsercomments")) ? null : reader.GetString(reader.GetOrdinal("sUsercomments")),
                         StepOrder = reader.GetInt32(reader.GetOrdinal("iStepOrder")),
@@ -206,7 +232,7 @@ namespace ApprovalWorkflow.Services
                         ActionDate = reader.IsDBNull(reader.GetOrdinal("dActionDate")) ? null : reader.GetDateTime(reader.GetOrdinal("dActionDate")),
                         ActionedBy = reader.IsDBNull(reader.GetOrdinal("iActionedBy")) ? null : reader.GetInt32(reader.GetOrdinal("iActionedBy")),
                         ActionedByUsername = reader.IsDBNull(reader.GetOrdinal("ActionedByUsername")) ? null : reader.GetString(reader.GetOrdinal("ActionedByUsername")),
-                        IsCurrentActiveStage = reader.GetInt32(reader.GetOrdinal("IsCurrentActiveStage")) == 1
+                        IsCurrentActiveStage = isStageActive
                     };
 
                     try
@@ -233,10 +259,21 @@ namespace ApprovalWorkflow.Services
                         Alerts = reader.IsDBNull(reader.GetOrdinal("sAlerts")) ? null : reader.GetString(reader.GetOrdinal("sAlerts")),
                         UserComments = reader.IsDBNull(reader.GetOrdinal("sUsercomments")) ? null : reader.GetString(reader.GetOrdinal("sUsercomments")),
                         Status = reader.GetInt32(reader.GetOrdinal("iStatus")),
+                        ReadStatus = 0,
                         ActionDate = reader.IsDBNull(reader.GetOrdinal("dActionDate")) ? null : reader.GetDateTime(reader.GetOrdinal("dActionDate")),
                         RecipientUserId = reader.GetInt32(reader.GetOrdinal("iUser")),
                         RecipientUsername = reader.GetString(reader.GetOrdinal("Username"))
                     };
+
+                    try
+                    {
+                        int rOrd = reader.GetOrdinal("iReadStatus");
+                        if (!reader.IsDBNull(rOrd)) notif.ReadStatus = reader.GetInt32(rOrd);
+                    }
+                    catch
+                    {
+                        if (notif.Status == 3) notif.ReadStatus = 1;
+                    }
 
                     try
                     {

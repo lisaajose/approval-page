@@ -321,6 +321,7 @@ BEGIN
         a.sAlerts,
         a.sUsercomments,
         a.iStatus,
+        a.iReadStatus,
         a.dActionDate,
         a.iCycle
     FROM t_Authdata a

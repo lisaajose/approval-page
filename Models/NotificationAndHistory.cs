@@ -14,7 +14,8 @@ namespace ApprovalWorkflow.Models
         public string? Alerts { get; set; }
         public string? UserComments { get; set; }
         public int Status { get; set; }
-        public bool IsRead => Status == 3;
+        public int ReadStatus { get; set; }
+        public bool IsRead => ReadStatus == 1 || Status == 3;
         public DateTime CreatedDate { get; set; }
         public string? CreatedByUsername { get; set; }
         public DateTime? ActionDate { get; set; }

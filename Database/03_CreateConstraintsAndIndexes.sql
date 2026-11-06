@@ -104,10 +104,18 @@ BEGIN
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CK_t_Authdata_iStatus')
+IF EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CK_t_Authdata_iStatus')
 BEGIN
-    ALTER TABLE t_Authdata ADD CONSTRAINT CK_t_Authdata_iStatus CHECK (iStatus IN (0, 1, 2, 3));
-    PRINT 'Check constraint [CK_t_Authdata_iStatus] created.';
+    ALTER TABLE t_Authdata DROP CONSTRAINT CK_t_Authdata_iStatus;
+END
+ALTER TABLE t_Authdata ADD CONSTRAINT CK_t_Authdata_iStatus CHECK (iStatus IN (0, 1, 2));
+PRINT 'Check constraint [CK_t_Authdata_iStatus] updated (0 = Pending, 1 = Approved, 2 = Rejected).';
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CK_t_Authdata_iReadStatus')
+BEGIN
+    ALTER TABLE t_Authdata ADD CONSTRAINT CK_t_Authdata_iReadStatus CHECK (iReadStatus IN (0, 1));
+    PRINT 'Check constraint [CK_t_Authdata_iReadStatus] created (0 = Unread, 1 = Read).';
 END
 GO
 
@@ -136,6 +144,15 @@ BEGIN
     ON t_Authdata (iHeaderId, iStepOrder)
     INCLUDE (iAlerttype, iUser, iStatus, dActionDate);
     PRINT 'Index [IX_t_Authdata_HeaderLookup] created.';
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_t_Authdata_Notifications')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_t_Authdata_Notifications
+    ON t_Authdata (iUser, iAlerttype, iReadStatus)
+    INCLUDE (iHeaderId, iLevel, sAlerts, sUsercomments, iStatus, dActionDate, iActionedBy);
+    PRINT 'Index [IX_t_Authdata_Notifications] created.';
 END
 GO
 

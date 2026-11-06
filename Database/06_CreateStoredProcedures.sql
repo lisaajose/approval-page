@@ -333,6 +333,7 @@ BEGIN
         a.sAlerts,
         a.sUsercomments,
         a.iStatus,
+        a.iReadStatus,
         a.dActionDate
     FROM t_Authdata a
     LEFT JOIN M_Users u ON a.iUser = u.UserId
@@ -695,6 +696,7 @@ BEGIN
         a.sAlerts,
         a.sUsercomments,
         a.iStatus,
+        a.iReadStatus,
         h.CreatedDate,
         uCreator.Username AS CreatedByUsername,
         a.dActionDate,
@@ -707,8 +709,8 @@ BEGIN
       AND a.iUser = @UserId
       AND (
           @NormalizedFilter = N'ALL'
-          OR (@NormalizedFilter = N'UNREAD' AND a.iStatus = 0)
-          OR (@NormalizedFilter = N'READ' AND a.iStatus = 3)
+          OR (@NormalizedFilter = N'UNREAD' AND a.iReadStatus = 0)
+          OR (@NormalizedFilter = N'READ' AND a.iReadStatus = 1)
       )
     ORDER BY a.iAuthId DESC;
 END;
@@ -902,16 +904,19 @@ CREATE OR ALTER PROCEDURE dbo.usp_UpdateNotificationStatus
 (
     @UserId       INT,
     @AuthIds      NVARCHAR(MAX),  -- Comma-separated list of iAuthId values, or 'ALL'
-    @NewStatus    INT,            -- 0 = Unread, 3 = Read
+    @NewStatus    INT,            -- 0 = Unread, 1 = Read (3 accepted for backward compatibility)
     @UpdatedCount INT = NULL OUTPUT
 )
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF @NewStatus NOT IN (0, 1, 2, 3)
+    -- Normalize 3 (legacy Read value) to 1 (Read)
+    DECLARE @TargetReadStatus INT = CASE WHEN @NewStatus = 3 THEN 1 ELSE @NewStatus END;
+
+    IF @TargetReadStatus NOT IN (0, 1)
     BEGIN
-        THROW 50030, N'Invalid notification status value. Allowed values are 0 (Unread) and 3 (Read).', 1;
+        THROW 50030, N'Invalid notification read status value. Allowed values are 0 (Unread) and 1 (Read).', 1;
     END
 
     IF @AuthIds IS NULL OR LTRIM(RTRIM(@AuthIds)) = N''
@@ -923,7 +928,7 @@ BEGIN
     IF UPPER(LTRIM(RTRIM(@AuthIds))) = N'ALL'
     BEGIN
         UPDATE t_Authdata
-        SET iStatus = @NewStatus
+        SET iReadStatus = @TargetReadStatus
         WHERE iAlerttype = 0
           AND iUser = @UserId;
 
@@ -932,7 +937,7 @@ BEGIN
     ELSE
     BEGIN
         UPDATE t_Authdata
-        SET iStatus = @NewStatus
+        SET iReadStatus = @TargetReadStatus
         WHERE iAlerttype = 0
           AND iUser = @UserId
           AND iAuthId IN (
